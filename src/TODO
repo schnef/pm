@@ -1,0 +1,22 @@
+TODO: Maybe use a digraph per pc to keep the digraphs small and boost
+search efficiency in pm_pdp?
+
+TODO: Something with resgistering processes the erlang way.
+
+TODO: Review handling processes. Double bookkeeping with the P table
+and the PU list in the process state.
+
+TODO: While defining prohibitions, it would be nice to store the type
+of the prohibited attributes (oa or ua) in the definition. Currently,
+the type to look for is determined when executing the prohinitions in
+the PDP.
+
+TODO: In determining the key of a set or sequence, we use the erlang
+phash2 function with a 2^32 range. This is considerated a small range.
+Maybe, ATI and ATE sets should get unique id's since it is not likely
+that these sets contain the same elements. AR sets do however contain
+a lilimited set of elements and are likely to be the same. Also, ATI
+and ATE sets are used in prohibitions and are for that reason less
+frequently used.
+
+Use parsec for parsing https://github.com/massung/parsec.

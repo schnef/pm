@@ -1,0 +1,672 @@
+#LyX 2.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 508
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Section
+Algemene opzet
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename images/NGAC Standard Functional Architecture.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+NGAC Standard Functional Architecture
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename images/Architectural Components of the PM.png
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Architectural Components of the PM
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+PIP
+\end_layout
+
+\begin_layout Standard
+De PIP is de tegenhanger van de Resources database.
+ De PIP bevat alle informatie over users, user attributes, objects en object
+ attributes.
+ 
+\end_layout
+
+\begin_layout Section
+Some code explained
+\end_layout
+
+\begin_layout Subsection
+C2 - Element Creation Commands
+\end_layout
+
+\begin_layout Subsubsection
+CreateUinUA (x: ID, y: ID)
+\end_layout
+
+\begin_layout Standard
+The specifications give the following description of this function:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+CreateUinUA (x: ID, y: ID) 
+\end_layout
+
+\begin_layout Plain Layout
+
+// add user x to the policy representation and assign it to user attribute
+ y 
+\end_layout
+
+\begin_layout Plain Layout
+
+x ∉ U 
+\end_layout
+
+\begin_layout Plain Layout
+
+x ∉ GUID 
+\end_layout
+
+\begin_layout Plain Layout
+
+y ∈ UA 
+\end_layout
+
+\begin_layout Plain Layout
+
+y ∈ GUID 
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+  GUID′ = GUID ⋃ {x}
+\end_layout
+
+\begin_layout Plain Layout
+
+  U′ = U ⋃ {x}
+\end_layout
+
+\begin_layout Plain Layout
+
+  PE′ = PE ⋃ {x}
+\end_layout
+
+\begin_layout Plain Layout
+
+  ASSIGN′ = ASSIGN ⋃ {(x, y)} 
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following code is used to create a User within a User Attribute:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Box Frameless
+position "t"
+hor_pos "c"
+has_inner_box 1
+inner_pos "t"
+use_parbox 0
+use_makebox 0
+width "100col%"
+special "none"
+height "1in"
+height_special "totalheight"
+thickness "0.4pt"
+separation "3pt"
+shadowsize "4pt"
+framecolor "black"
+backgroundcolor "none"
+status open
+
+\begin_layout Plain Layout
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+-spec create_u_in_ua(G :: digraph:graph(), U :: pm:u(), UA :: pm:ua()) ->
+ ok | {error, Reason :: term()}.
+\end_layout
+
+\begin_layout Plain Layout
+
+%% @doc add user x to the policy representation and assign it to user attribute
+ y 
+\end_layout
+
+\begin_layout Plain Layout
+
+create_u_in_ua(G, #u{id = X} = U, #ua{id = Y} = UA) ->
+\end_layout
+
+\begin_layout Plain Layout
+
+    [#ua{vertex = Vy, ref_cnt = Ref_cnt} = UA] = mnesia:read(ua, Y, write),
+\end_layout
+
+\begin_layout Plain Layout
+
+    case digraph:add_vertex(G) of
+\end_layout
+
+\begin_layout Plain Layout
+
+    	{error, _Reason} = Error ->
+\end_layout
+
+\begin_layout Plain Layout
+
+    	    Error;
+\end_layout
+
+\begin_layout Plain Layout
+
+   	Vx ->
+\end_layout
+
+\begin_layout Plain Layout
+
+  	    case digraph:add_edge(G, Vx, Vy) of
+\end_layout
+
+\begin_layout Plain Layout
+
+    		  {error, _Reason} = Error ->
+\end_layout
+
+\begin_layout Plain Layout
+
+    		    Error;
+\end_layout
+
+\begin_layout Plain Layout
+
+   	  Edge ->
+\end_layout
+
+\begin_layout Plain Layout
+
+ 		      mnesia:write(U#u{vertex = Vx, ref_cnt = 0}),
+\end_layout
+
+\begin_layout Plain Layout
+
+		       mnesia:write(UA#ua{ref_cnt = Ref_cnt + 1}),
+\end_layout
+
+\begin_layout Plain Layout
+
+			   mnesia:write(#assign{atfr = X, atto = Y, edge = Edge})
+\end_layout
+
+\begin_layout Plain Layout
+
+	    end
+\end_layout
+
+\begin_layout Plain Layout
+
+    end.
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The argument U holds the data for the new User to be added to the PM and
+ the _UA argument holds the id of the user attribute to which the user is
+ being assigned.
+ We start out by fetching the user attribute record from the database since
+ we need both the digraph vertex of the user attribute and the number of
+ references to this user attribute.
+ If the user attribute doesn't exist, we will crash.
+ Next we create the digraph vertex for the user and the edge from the user
+ to the user attribute.
+ Adding the user's vertex and the edge may go wrong if for example we run
+ out of memory or the tables get too large, which will result in aborting
+ the whole transaction.
+ Next we add the user's data with the vertex and a reference count of zero
+ to the database, increment the reference count for the user attribute record
+ and write the assignment record to the database.
+\end_layout
+
+\begin_layout Subsection
+Determine privilege
+\end_layout
+
+\begin_layout Standard
+Requesting privilege for non-existing access rights and users, currently
+ will return a denied value.
+ One could argue a not_found error may be more appropriate.
+ 
+\end_layout
+
+\begin_layout Standard
+Bij prohibition is de mogelijke verzameling waar uitsluitingen op van toepassing
+ is in pricipe gelijk aan alle elementen in de policy machine met uitzondering
+ van de pc's (PE 
+\backslash
+ PC).
+ 
+\end_layout
+
+\begin_layout Subsubsection
+Disjunctive prohibition
+\end_layout
+
+\begin_layout Standard
+Bij disjunctive
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+in de verzamelingsleer de vereniging (union)
+\end_layout
+
+\end_inset
+
+ gaan we er in eerste instantie van uit dat we alle elementen mogen benaderen
+ behalve de elementen en alle subelementen in de reeks ati.
+ De uitsluiting wordt dus gevormd door de vereneiging van alle elementen
+ in de verzameling ati´s.
+ Maar ook, alle elementen in de digraph zijn uitgesloten, met uitzondering
+ van de elementen die voorkomen in de vereniging van de ate´s.
+\end_layout
+
+\begin_layout Enumerate
+Als het doel voorkomt in één of meer ati´s, dan heb je geen toehang tot
+ die node;
+\end_layout
+
+\begin_layout Enumerate
+anders, als de doel node voorkomt in alle ate´s, dan heb je alsnog geen
+ toegang tot die nodel
+\end_layout
+
+\begin_layout Enumerate
+anders heb je toegang.
+\end_layout
+
+\begin_layout Standard
+Als voorbeeld: de lijst ati´s bevat projecten 1 en 2 met een aantal objecten
+ daarin waarvan een aantal objecten gedeeld worden tussen de projecten.
+ Als het doelobject in project 1 of 2 valt, dan heb je er geen toegang toe.
+ Zijn projecten 1 en 2 onderdeel van de ate´s, dan heb je nergens toegang
+ toe behalve de elementen die gevormd worden door de vereniging van de objecten
+ in projecten 1 en 2.
+\end_layout
+
+\begin_layout Standard
+Dus ati geeft aan waar geen toegang toe gegeven wordt terwijl ate aangeeft
+ waar je wel toegang toe krijgt.
+\end_layout
+
+\begin_layout Section
+PEP
+\end_layout
+
+\begin_layout Standard
+The PEP more or less implements the access request decisions as described
+ in chapter 3.6.
+\end_layout
+
+\begin_layout Standard
+The relation AREQ ⊆ P × Op × Argseq are the access requests the PEP receives.
+ The P's are the PEP's process Id's and the Op are the operations.
+ The operations are either resource operations (read and write) or administrativ
+e operations like c-u-in-ua etc.
+ The specs define a minimal set of operations and explicitly allows the
+ definition of other operations as well.
+ So, the PEP should be able to recognize and act on a dynamic set of operations.
+\end_layout
+
+\begin_layout Standard
+Operations should always be either resource operations (ror) or administrative
+ operations (aor).
+ The PDP not only checks for sufficient authorization to carry-out administrativ
+e operations, but also will execute these administrative operations and
+ return the result (success or failure) to the PEP.
+ In the case of a resource operation, the PDP's role is only to determine
+ the privilege for executing the operation.
+\end_layout
+
+\begin_layout Standard
+On accessing a resource, an application requests the PEP access to a particular
+ resource in the form of a URI.
+ For example, a user wants to read a file with the URI scheme:[//[user[:password
+]@]host[:port]][/path][?query][#fragment].
+ The application can not access the resource directly and issues the request
+ through the PEP.
+\end_layout
+
+\begin_layout Standard
+In the PM, all resources are objects or object attributes.
+ The file file://user@host/path/to/file is an object and the directory host/path
+/to is a object attribute.
+ The object is represented in the policy machine as a vertex in a digraph.
+ The id of the object (attribute) is a UUID and the value of the object
+ (attribute) is the resource's URI.
+ Since the policy machine is a universal implementation, the id of the object
+ is not the same as value of the object, with the latter being application
+ specific.
+\end_layout
+
+\begin_layout Standard
+So, the user requests the resource.
+ The PDP will inform the PEP about its decision (accept / deny) after which
+ the PEP will ask the RAP to perform the access request.
+ A major issue is serializing the RAP, i.e.
+ the policy machine uses obligations which can trigger a series of events
+ and the pm reflects these events.
+ To make sure resource access is serialized, a process is started for each
+ resource being accessed.
+\end_layout
+
+\begin_layout Standard
+The pm makes its decisions in a particular order based on its knowledge
+ of the resources.
+ It grants read access to a file in the assumption the file exists.
+ The process reading the file may be slow in actual reading the file and
+ another process may want to delete the file before the slow process did
+ fetch the file for reading.
+ The pm makes it decisions in a particular order and the RAP should process
+ these decisions in the same order.
+ But, enforcing that order will restrain all processes even when these processes
+ involve unrelated resources.
+ File A must have been read before being deleted, but the action of writing
+ some unrelated webpage by a different process is stalled since the other
+ process was first and should finish before the other process can write
+ the webpage.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Section
+Storage backends
+\end_layout
+
+\begin_layout Itemize
+Neo4J
+\end_layout
+
+\begin_layout Itemize
+Titan:DB
+\end_layout
+
+\begin_layout Section
+Authorization protocol
+\end_layout
+
+\begin_layout Standard
+For PEP see:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset CommandInset href
+LatexCommand href
+name "Auth to See the Wizard"
+target "https://hueniverse.com/2015/09/19/auth-to-see-the-wizard-or-i-wrote-an-oauth-replacement/"
+
+\end_inset
+
+;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset CommandInset href
+LatexCommand href
+name "OAuth"
+target "https://oauth.net/"
+
+\end_inset
+
+;
+\end_layout
+
+\begin_layout Itemize
+\begin_inset CommandInset href
+LatexCommand href
+name "Authentication and Authorization"
+target "https://uu.diva-portal.org/smash/get/diva2:344199/FULLTEXT01.pdf"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Between PEP and PDP, the COPS protocol may be an option? 
+\begin_inset CommandInset href
+LatexCommand href
+name "COPS protocol"
+target "https://tools.ietf.org/html/rfc2748"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Related work:
+\end_layout
+
+\begin_layout Itemize
+XACML 
+\begin_inset CommandInset href
+LatexCommand href
+name "XACML"
+target "https://en.wikipedia.org/wiki/XACML"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Questions
+\end_layout
+
+\begin_layout Enumerate
+In the standard, there is no way to delete a pc from the PAP.
+ the d_pc function is not defined.
+\end_layout
+
+\begin_layout Enumerate
+According to the standard, it is allowed to associate between a U and its
+ parent UA: i.e.
+ since a U -> a UA and UA -> UA association is allowed, regardless of the
+ fact that either the U or UA are siblings of the UA, this maybe creates
+ weird associations?
+\end_layout
+
+\begin_layout Enumerate
+Every time the c_assoc function is called, as well as the underlying PIP
+ call for creating an association, there is no check if the same association
+ is not already defined.
+ The same applices for prohibitions.
+\end_layout
+
+\begin_layout Enumerate
+We do not check on uniqueness of GUID's since we assume allocting a GUID
+ is sufficient.
+ 
+\end_layout
+
+\end_body
+\end_document

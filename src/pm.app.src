@@ -1,0 +1,21 @@
+{application, pm,
+ [{description, "The Policy Machine: an access control framework."},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, { pm_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    crypto,
+    asn1,
+    public_key,
+    ssl,
+    zuuid
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, []},
+  {links, []}
+ ]}.

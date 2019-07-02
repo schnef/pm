@@ -1,0 +1,13 @@
+script demo
+
+// For MLS
+when any user performs "Object read"
+    on any object of attribute TS
+  do deny session session_default
+     operation "File write"
+     on attribute TS
+
+when any user performs "Object read"
+    on any object of attribute S
+  do
+  
