@@ -271,16 +271,18 @@ server_test_() ->
     {setup, fun server_setup/0, fun server_cleanup/1, fun tsts/1}.
 
 server_setup() ->
-    pm_pap:start_link(),
-    pm_pdp:start_link().
+    %% pm_pap:start_link(),
+    %% pm_pdp:start_link().
+    ok.
 
 server_cleanup(_) ->
-    pm_pdp:stop(),
-    pm_pap:stop(),
+    %% pm_pdp:stop(),
+    %% pm_pap:stop(),
     ok.
 
 tsts(_Pids) ->
-    [tst_fig3_privilege(), % simple structure
+    [tst_policy_machine_core_getting_started(),
+     tst_fig3_privilege(), % simple structure
      tst_fig2_privilege(), % more complex structure
      tst_fig4_u_disj_prohibitions(),
      tst_fig4_ua_disj_prohibitions(),
@@ -303,6 +305,26 @@ tsts(_Pids) ->
      tst_fig4_8_conj_prohibitions(),
      tst_fig4_9_conj_prohibitions()
     ].
+
+tst_policy_machine_core_getting_started() ->
+    {ok, PC} = pm_pap:c_pc(#pc{value = "Bank Teller example"}),
+    {ok, Branch_1_usr_attr} = pm_pap:c_ua_in_pc(#ua{value = "Branch 1 user attribute"}, PC),
+    {ok, Branch_1_obj_attr} = pm_pap:c_oa_in_pc(#oa{value = "Branch 1 object attribute"}, PC),
+    {ok, Teller} = pm_pap:c_ua_in_ua(#ua{value = "Teller"}, Branch_1_usr_attr),
+    {ok, Auditor} = pm_pap:c_ua_in_ua(#ua{value = "Auditor"}, Branch_1_usr_attr),
+    {ok, U1} = pm_pap:c_u_in_ua(#u{value = "User u1"}, Teller),
+    {ok, U2} = pm_pap:c_u_in_ua(#u{value = "User u2"}, Auditor),
+    {ok, Accounts} = pm_pap:c_oa_in_oa(#oa{value = "accounts"}, Branch_1_obj_attr),
+    {ok, O1} = pm_pap:c_o_in_oa(#o{value = "Account o1"}, Accounts),
+    AR_r = #ar{id = 'r'},
+    AR_w = #ar{id = 'w'},
+    %% Branch 1 user attribute has read and write permissions on the Branch 1 object attribute
+    pm_pap:c_assoc(Teller, [AR_r, AR_w], Accounts),
+    pm_pap:c_assoc(Auditor, [AR_r], Accounts),
+    [?_assertMatch(grant, pm_pdp:privilege(U1, [AR_r], O1)),
+     ?_assertMatch(grant, pm_pdp:privilege(U1, [AR_w], O1)),
+     ?_assertMatch(grant, pm_pdp:privilege(U2, [AR_r], O1)),
+     ?_assertMatch(deny, pm_pdp:privilege(U2, [AR_w], O1))].
 
 tst_fig3_privilege() ->
     {ok, PC} = pm_pap:c_pc(#pc{value = "a PC"}),

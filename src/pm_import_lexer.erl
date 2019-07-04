@@ -1,4 +1,4 @@
--file("/usr/lib/erlang/lib/parsetools-2.1.5/include/leexinc.hrl", 0).
+-file("/usr/lib/erlang/lib/parsetools-2.1.8/include/leexinc.hrl", 0).
 %% The source of this file is part of leex distribution, as such it
 %% has the same Copyright as the other files in the leex
 %% distribution. The Copyright is defined in the accompanying file
@@ -12,9 +12,9 @@
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 58).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 58).
 
--file("/usr/lib/erlang/lib/parsetools-2.1.5/include/leexinc.hrl", 14).
+-file("/usr/lib/erlang/lib/parsetools-2.1.8/include/leexinc.hrl", 14).
 
 format_error({illegal,S}) -> ["illegal characters ",io_lib:write_string(S)];
 format_error({user,S}) -> S.
@@ -275,6 +275,8 @@ skip_cont(Rest, Line, {skip_token,Push}, Error) ->
 skip_cont(Rest, Line, {error,_S}, Error) ->
     skip_tokens(yystate(), Rest, Line, Rest, 0, Line, Error, reject, 0).
 
+-compile({nowarn_unused_function, [yyrev/1, yyrev/2, yypre/2, yysuf/2]}).
+
 yyrev(List) -> lists:reverse(List).
 yyrev(List, Tail) -> lists:reverse(List, Tail).
 yypre(List, N) -> lists:sublist(List, N).
@@ -284,6 +286,8 @@ yysuf(List, N) -> lists:nthtail(N, List).
 %% Make sure that newlines in Chars are not counted twice.
 %% Line has been updated with respect to newlines in the prefix of
 %% Chars consisting of (TokenLength - AcceptLength) characters.
+
+-compile({nowarn_unused_function, adjust_line/4}).
 
 adjust_line(N, N, _Cs, L) -> L;
 adjust_line(T, A, [$\n|Cs], L) ->
@@ -301,7 +305,7 @@ adjust_line(T, A, [_|Cs], L) ->
 %% return signal either an unrecognised character or end of current
 %% input.
 
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.erl", 303).
+-file("/home/frans/pm/src/pm_import_lexer.erl", 307).
 yystate() -> 161.
 
 yystate(164, [125|Ics], Line, Tlen, _, _) ->
@@ -2745,223 +2749,223 @@ yyaction(43, _, _, _) ->
 yyaction(_, _, _, _) -> error.
 
 -compile({inline,yyaction_0/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 9).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 9).
 yyaction_0(TokenChars, TokenLine) ->
      { token, { 'Connector', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_1/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 10).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 10).
 yyaction_1(TokenChars, TokenLine) ->
      { token, { comps, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_2/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 11).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 11).
 yyaction_2(TokenChars, TokenLine) ->
      { token, { conts, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_3/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 12).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 12).
 yyaction_3(TokenChars, TokenLine) ->
      { token, { 'Directory', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_4/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 13).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 13).
 yyaction_4(TokenChars, TokenLine) ->
      { token, { 'File', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_5/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 14).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 14).
 yyaction_5(TokenChars, TokenLine) ->
      { token, { 'Object', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_6/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 15).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 15).
 yyaction_6(TokenChars, TokenLine) ->
      { token, { 'Object attr', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_7/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 16).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 16).
 yyaction_7(TokenChars, TokenLine) ->
      { token, { 'Operation set', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_8/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 17).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 17).
 yyaction_8(TokenChars, TokenLine) ->
      { token, { pm, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_9/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 18).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 18).
 yyaction_9(TokenChars, TokenLine) ->
      { token, { 'Policy class', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_10/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 19).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 19).
 yyaction_10(TokenChars, TokenLine) ->
      { token, { 'User', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_11/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 20).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 20).
 yyaction_11(TokenChars, TokenLine) ->
      { token, { 'User attr', TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_12/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 21).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 21).
 yyaction_12(TokenChars, TokenLine) ->
      { token, { a, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_13/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 22).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 22).
 yyaction_13(TokenChars, TokenLine) ->
      { token, { across_sess, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_14/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 23).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 23).
 yyaction_14(TokenChars, TokenLine) ->
      { token, { add, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_15/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 24).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 24).
 yyaction_15(TokenChars, TokenLine) ->
      { token, { app, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_16/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 25).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 25).
 yyaction_16(TokenChars, TokenLine) ->
      { token, { as, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_17/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 26).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 26).
 yyaction_17(TokenChars, TokenLine) ->
      { token, { asg, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_18/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 27).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 27).
 yyaction_18(TokenChars, TokenLine) ->
      { token, { b, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_19/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 28).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 28).
 yyaction_19(TokenChars, TokenLine) ->
      { token, { c, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_20/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 29).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 29).
 yyaction_20(TokenChars, TokenLine) ->
      { token, { cb, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_21/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 30).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 30).
 yyaction_21(TokenChars, TokenLine) ->
      { token, { deny, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_22/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 31).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 31).
 yyaction_22(TokenChars, TokenLine) ->
      { token, { eml, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_23/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 32).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 32).
 yyaction_23(TokenChars, TokenLine) ->
      { token, { fn, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_24/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 33).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 33).
 yyaction_24(TokenChars, TokenLine) ->
      { token, { h, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_25/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 34).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 34).
 yyaction_25(TokenChars, TokenLine) ->
      { token, { intra_sess, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_26/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 35).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 35).
 yyaction_26(TokenChars, TokenLine) ->
      { token, { key, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_27/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 36).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 36).
 yyaction_27(TokenChars, TokenLine) ->
      { token, { ks, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_28/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 37).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 37).
 yyaction_28(TokenChars, TokenLine) ->
      { token, { no, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_29/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 38).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 38).
 yyaction_29(TokenChars, TokenLine) ->
      { token, { o, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_30/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 39).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 39).
 yyaction_30(TokenChars, TokenLine) ->
      { token, { ob, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_31/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 40).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 40).
 yyaction_31(TokenChars, TokenLine) ->
      { token, { oc, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_32/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 41).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 41).
 yyaction_32(TokenChars, TokenLine) ->
      { token, { op, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_33/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 42).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 42).
 yyaction_33(TokenChars, TokenLine) ->
      { token, { p, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_34/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 43).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 43).
 yyaction_34(TokenChars, TokenLine) ->
      { token, { prop, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_35/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 44).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 44).
 yyaction_35(TokenChars, TokenLine) ->
      { token, { s, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_36/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 45).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 45).
 yyaction_36(TokenChars, TokenLine) ->
      { token, { sa, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_37/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 46).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 46).
 yyaction_37(TokenChars, TokenLine) ->
      { token, { tpl, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_38/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 47).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 47).
 yyaction_38(TokenChars, TokenLine) ->
      { token, { u, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_39/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 48).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 48).
 yyaction_39(TokenChars, TokenLine) ->
      { token, { user_id, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_40/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 49).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 49).
 yyaction_40(TokenChars, TokenLine) ->
      { token, { v, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_41/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 50).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 50).
 yyaction_41(TokenChars, TokenLine) ->
      { token, { yes, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_42/2}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 53).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 53).
 yyaction_42(TokenChars, TokenLine) ->
      { token, { string, TokenLine, TokenChars } } .
 
 -compile({inline,yyaction_43/0}).
--file("/home/frans/pm/_build/default/lib/pm/src/pm_import_lexer.xrl", 54).
+-file("/home/frans/pm/src/pm_import_lexer.xrl", 54).
 yyaction_43() ->
      skip_token .
 
--file("/usr/lib/erlang/lib/parsetools-2.1.5/include/leexinc.hrl", 309).
+-file("/usr/lib/erlang/lib/parsetools-2.1.8/include/leexinc.hrl", 313).

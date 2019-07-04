@@ -20,7 +20,7 @@ start() ->
             mnesia:start(),
             create_db();
 	_ ->
-	    mnesia:wait_for_tables([u, ua, o, oa, pc, assign, assoc, 
+	    mnesia:wait_for_tables([pe, u, ua, o, oa, pc, assign, assoc, 
 				    u_deny_conj, p_deny_conj, ua_deny_conj,
 				    u_deny_disj, p_deny_disj, ua_deny_disj, 
 				    oblig, ar, aop, rop, arset, atiset, ateset,
