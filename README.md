@@ -40,7 +40,6 @@ tst_policy_machine_core_getting_started() ->
     {ok, O1} = pm_pap:c_o_in_oa(#o{value = "Account o1"}, Accounts),
     AR_r = #ar{id = 'r'},
     AR_w = #ar{id = 'w'},
-    %% Branch 1 user attribute has read and write permissions on the Branch 1 object attribute
     pm_pap:c_assoc(Teller, [AR_r, AR_w], Accounts),
     pm_pap:c_assoc(Auditor, [AR_r], Accounts),
     [?_assertMatch(grant, pm_pdp:privilege(U1, [AR_r], O1)),
@@ -51,7 +50,7 @@ tst_policy_machine_core_getting_started() ->
 
 Since this implementation lacks the option to have more than one
 Policy Class, the unit test is not equivalent to the example. The
-example does however makes it clear what the authors intend the
+example does however make it clear what the authors intend the
 multiple PCs to be used like.
 
 NB: as the unit test code shows, the application implements only the
