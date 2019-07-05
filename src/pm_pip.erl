@@ -435,11 +435,24 @@ pm_pip_test_() ->
      ]}.
 
 setup() ->
-    pm_db:start(),
-    [].
+    zuuid:start(),
+    {ok, Cwd} = file:get_cwd(), % current working directory
+    Uuid = zuuid:string(zuuid:v1()), % generate a UUID
+    Dir = filename:join([Cwd, "test", Uuid]), % construct temporary directory name
+    ok = file:make_dir(Dir), %create dir
+    application:set_env(mnesia, dir, Dir), % This is how mnesia will know where the db should go
+    pm_db:install([node()]), % install a fresh db
+    application:start(mnesia), % start mnesia
+    pm_db:start(), % make sure tables are available
+    Dir.
 
-cleanup(_Arg) ->
-    pm_db:stop().
+cleanup(Dir) ->
+    application:stop(mnesia), % stop mnesia
+    %% Delete temporary db by removing db files and the directory
+    {ok, Files} = file:list_dir(Dir),
+    [file:delete(filename:join([Dir, File])) || File <- Files],
+    ok = file:del_dir(Dir),
+    ok.
 
 
 tst_create_x() ->

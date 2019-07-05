@@ -1,8 +1,6 @@
-pm (Policy Machine)
-=====
+# pm (Policy Machine)
 
-Policy Machine Erlang implementation. This is pre-pre-pre-alpha and likely to
-disappear again soon.  See [the policy machine
+Policy Machine Erlang implementation. **This is experimental code**. See [the policy machine
 overview](http://csrc.nist.gov/pm/) for more information or read the
 specs from [NISTIR 7987rev. 1](http://nvlpubs.nist.gov/nistpubs/ir/2015/NIST.IR.7987r1.pdf).
 
@@ -12,17 +10,45 @@ implement. It is of no practical use as it is now.
 Take a look at the unit tests at the bottom of the modules on how to
 use the functions.
 
-Run
------
+# Run
 
-    $ rebar3 shell
-	<lots of progress reports>
-	1> pm_pdp:test().
-	  All 142 tests passed.
-    ok
+## First time
 
-Running the unit tests with `rebar3 eunit` currently doesn't work, but
-the above does.
+Before running the application, the database must be created. 
+The simplest way to do this is to start the application and wait for
+it to crash afetr about five seconds because it couldn't start the
+databse.
+
+```
+~/pm$ rebar3 shell
+<lots of output>
+===> Failed to boot pm for reason {bad_return,
+   ...
+   
+```
+Press the `<Enter>` key to get the prompt `1>` and enter the following
+line:
+
+```
+1> pm_db:install([node()]).
+```
+
+This should give a lot of output ending with `{[ok],[]}`. Now quit
+from the erlang shell by entering `q().` and restart the application
+as before and you're ready to go.
+
+## Running tests
+
+For the unit tests, a temporary database is created (and removed) in
+the test directory to prevent corrupting an existing database. Run the
+tests by executing:
+
+```
+$ rebar3 eunit
+<lots of progress reports>
+Finished in 1.582 seconds
+297 tests, 0 failures
+```
 
 The [policy machine core](https://pm-master.github.io/pm-master/policy-machine-core/)
 gives a [bank teller example](https://pm-master.github.io/pm-master/policy-machine-core/#bank-teller), which is implemented as one of the unit tests:
@@ -48,7 +74,7 @@ tst_policy_machine_core_getting_started() ->
      ?_assertMatch(deny, pm_pdp:privilege(U2, [AR_w], O1))].
 ```
 
-Since this implementation lacks the option to have more than one
+Since this implementation currently lacks the option to have more than one
 Policy Class, the unit test is not equivalent to the example. The
 example does however make it clear what the authors intend the
 multiple PCs to be used like.

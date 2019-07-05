@@ -271,13 +271,29 @@ server_test_() ->
     {setup, fun server_setup/0, fun server_cleanup/1, fun tsts/1}.
 
 server_setup() ->
-    %% pm_pap:start_link(),
-    %% pm_pdp:start_link().
-    ok.
+    %% To prevent an existing database being corrupted by running the
+    %% tests, a temporary database is created in a separate directory.
+    zuuid:start(),
+    {ok, Cwd} = file:get_cwd(), % current working directory
+    Uuid = zuuid:string(zuuid:v1()), % generate a UUID
+    Dir = filename:join([Cwd, "test", Uuid]), % construct temporary directory name
+    ok = file:make_dir(Dir), %create dir
+    application:set_env(mnesia, dir, Dir), % This is how mnesia will know where the db should go
+    pm_db:install([node()]), % install a fresh db
+    application:start(mnesia), % start mnesia
+    pm_db:start(), % make sure tables are available
+    pm_pap:start_link(), % start PAP
+    pm_pdp:start_link(), % start PDP
+    Dir.
 
-server_cleanup(_) ->
-    %% pm_pdp:stop(),
-    %% pm_pap:stop(),
+server_cleanup(Dir) ->
+    pm_pdp:stop(),
+    pm_pap:stop(),
+    application:stop(mnesia), % stop mnesia
+    %% Delete temporary db by removing db files and the directory
+    {ok, Files} = file:list_dir(Dir),
+    [file:delete(filename:join([Dir, File])) || File <- Files],
+    ok = file:del_dir(Dir),
     ok.
 
 tsts(_Pids) ->

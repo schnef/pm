@@ -5,38 +5,32 @@
 -include("pm.hrl").
 
 %% API
--export([start/0, stop/0, create_db/0]).
+-export([start/0, install/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-start() ->
-    mnesia:start(),
-    case mnesia:system_info(tables) of
-        [schema] ->
-            mnesia:stop(),
-            mnesia:create_schema([node()]),
-            mnesia:start(),
-            create_db();
-	_ ->
-	    mnesia:wait_for_tables([pe, u, ua, o, oa, pc, assign, assoc, 
-				    u_deny_conj, p_deny_conj, ua_deny_conj,
-				    u_deny_disj, p_deny_disj, ua_deny_disj, 
-				    oblig, ar, aop, rop, arset, atiset, ateset,
-				    pattern, response],
-				   5000)
-    end.
+install(Nodes) ->
+    ok = mnesia:create_schema(Nodes),
+    rpc:multicall(Nodes, application, start, [mnesia]),
+    create_tables(),
+    init_tables(),
+    rpc:multicall(Nodes, application, stop, [mnesia]).
 
-stop() ->
-    mnesia:stop().
+start() ->
+    ok = mnesia:wait_for_tables([pe, u, ua, o, oa, pc, assign, assoc, 
+				 u_deny_conj, p_deny_conj, ua_deny_conj,
+				 u_deny_disj, p_deny_disj, ua_deny_disj, 
+				 oblig, ar, aop, rop, arset, atiset, ateset,
+				 pattern, response],
+				5000).
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-create_db() ->
-    create_tables(),
+init_tables() ->
     [mnesia:dirty_write(u, Record) || Record <- init_u_data()],
     [mnesia:dirty_write(ar, Record) || Record <- init_ar_data()],
     [mnesia:dirty_write(rop, Record) || Record <- init_rop_data()],

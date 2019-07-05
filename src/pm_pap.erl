@@ -827,13 +827,24 @@ server_test_() ->
      fun tsts/1}.
 
 server_setup() ->
-    pm_db:start(),
-    {ok, Pid} = pm_pap:start_link(),
-    {Pid}.
+    zuuid:start(),
+    {ok, Cwd} = file:get_cwd(), % current working directory
+    Uuid = zuuid:string(zuuid:v1()), % generate a UUID
+    Dir = filename:join([Cwd, "test", Uuid]), % construct temporary directory name
+    ok = file:make_dir(Dir), %create dir
+    application:set_env(mnesia, dir, Dir), % This is how mnesia will know where the db should go
+    pm_db:install([node()]), % install a fresh db
+    application:start(mnesia), % start mnesia
+    pm_db:start(), % make sure tables are available
+    pm_pap:start_link(), % start PAP
+    Dir.
 
-server_cleanup(_Pid) ->
+server_cleanup(Dir) ->
     pm_pap:stop(),
-    pm_db:stop(),
+    application:stop(mnesia), % stop mnesia
+    {ok, Files} = file:list_dir(Dir),
+    [file:delete(filename:join([Dir, File])) || File <- Files],
+    ok = file:del_dir(Dir),
     ok.
 
 %% TODO: add more tests. Some tests not yet implemented

@@ -8,15 +8,15 @@
     stdlib,
     mnesia,
     crypto,
-    asn1,
-    public_key,
-    ssl,
+    %% asn1,
+    %% public_key,
+    %% ssl,
     zuuid
    ]},
   {env,[]},
   {modules, []},
 
   {maintainers, []},
-  {licenses, []},
+  {licenses, ["MIT"]},
   {links, []}
  ]}.
