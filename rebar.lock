@@ -1,4 +1,4 @@
 [{<<"zuuid">>,
-  {git,"https://github.com/zxq9/zuuid.git",
+  {git,"https://gitlab.com/zxq9/zuuid",
        {ref,"fd2a4ccd0f5fd6e6223bb14bd3a5075b7016c1a7"}},
   0}].
