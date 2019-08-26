@@ -1,0 +1,50 @@
+This is BibTeX, Version 0.99d (TeX Live 2016/Debian)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+The top-level auxiliary file: pm.aux
+The style file: plain.bst
+Database file #1: pm.bib
+Warning--empty year in NISTIR-7987-REV-1
+Warning--empty year in NISTIR-7316
+Warning--empty journal in Assessment-AC-Systems
+You've used 3 entries,
+            2118 wiz_defined-function locations,
+            513 strings with 4342 characters,
+and the built_in function-call counts, 909 in all, are:
+= -- 82
+> -- 54
+< -- 2
++ -- 21
+- -- 18
+* -- 69
+:= -- 165
+add.period$ -- 12
+call.type$ -- 3
+change.case$ -- 16
+chr.to.int$ -- 0
+cite$ -- 6
+duplicate$ -- 34
+empty$ -- 62
+format.name$ -- 18
+if$ -- 181
+int.to.chr$ -- 0
+int.to.str$ -- 3
+missing$ -- 5
+newline$ -- 19
+num.names$ -- 6
+pop$ -- 27
+preamble$ -- 1
+purify$ -- 15
+quote$ -- 0
+skip$ -- 15
+stack$ -- 0
+substring$ -- 15
+swap$ -- 4
+text.length$ -- 2
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 8
+warning$ -- 3
+while$ -- 6
+width$ -- 4
+write$ -- 33
+(There were 3 warnings)
