@@ -196,11 +196,12 @@ create_ar(AR) ->
 create_arset(ARset, AR_ids) ->
     case mnesia:read(arset, ARset, read) of
 	[] ->
+	    Value = sets:from_list(AR_ids),
 	    [begin 
 		 [AR] = mnesia:read(ar, AR_id, write),
 		 mnesia:write(AR#ar{ref_cnt = AR#ar.ref_cnt + 1})
-	     end || AR_id <- AR_ids],
-	    Set = #set{id = ARset, value = sets:from_list(AR_ids), ref_cnt = 0, inst_cnt = 1},
+	     end || AR_id <- sets:to_list(Value)],
+	    Set = #set{id = ARset, value = Value, ref_cnt = 0, inst_cnt = 1},
 	    mnesia:write(arset, Set, write);
 	[#set{inst_cnt = N} = Set] ->
 	    mnesia:write(arset, Set#set{inst_cnt = N + 1}, write)
@@ -223,11 +224,12 @@ create_ateset(ATEset, ATE_ids) ->
 create_atset(ATset, AT_ids, ATset_table) ->
     case mnesia:read(ATset_table, ATset, read) of
 	[] ->
+	    Value = sets:from_list(AT_ids),
 	    [begin 
 		 [PE] = mnesia:read(pe, AT_id, write),
 		 mnesia:write(PE#pe{ref_cnt = PE#pe.ref_cnt + 1})
-	     end || AT_id <- AT_ids],
-	    Set = #set{id = ATset, value = sets:from_list(AT_ids), ref_cnt = 0, inst_cnt = 1},
+	     end || AT_id <- sets:to_list(Value)],
+	    Set = #set{id = ATset, value = Value, ref_cnt = 0, inst_cnt = 1},
 	    mnesia:write(ATset_table, Set, write);
 	[#set{inst_cnt = N} = Set] ->
 	    mnesia:write(ATset_table, Set#set{inst_cnt = N + 1}, write)
@@ -901,7 +903,6 @@ tst_delete_response() ->
 	 end,
     [?_assertEqual(ok, t(F1))].
     
-
 tst_allocate_id() ->
     Id1 = allocate_id(),
     Id2 = allocate_id(),

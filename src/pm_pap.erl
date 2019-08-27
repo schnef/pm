@@ -168,7 +168,7 @@ c_assoc(#ua{id = X}, ARs, #o{id = Z}) ->
 c_assoc(#ua{id = X}, ARs, #oa{id = Z}) ->
     c_assoc(X, ARs, Z);
 c_assoc(X, ARs, Z) when ARs =/= [] ->
-    AR_ids = lists:usort([(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs]),
+    AR_ids = [(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs],
     case gen_server:call(?SERVER, {c_assoc, X, AR_ids, Z}) of
 	{ok, ARset} ->
 	    {ok, #association{ua = X, arset = ARset, at = Z}};
@@ -271,24 +271,24 @@ c_prohib(_W, [], _ATIs, _ATEs, _Prohib) ->
 c_prohib(_W, _ARs, [], [], _Prohib) ->
     {error, badvalue};
 c_prohib(W, [#ar{} | _] = ARs, ATIs, ATEs, Prohib) ->
-    AR_ids = lists:usort([(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs]),
+    AR_ids = [(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs],
     c_prohib(W, AR_ids, ATIs, ATEs, Prohib);
 c_prohib(W, AR_ids, [] = _ATIs, [#ua{} | _] = ATEs, Prohib) ->
-    ATE_ids = lists:usort([(fun(#ua{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs]),
+    ATE_ids = [(fun(#ua{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs],
     gen_server:call(?SERVER, {c_prohib, W, AR_ids, [], ATE_ids, Prohib});
 c_prohib(W, AR_ids, [] = _ATIs, ATEs, Prohib) ->
-    ATE_ids = lists:usort([(fun(#oa{id = AT_id}) -> AT_id;
-			       (#o{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs]),
+    ATE_ids = [(fun(#oa{id = AT_id}) -> AT_id;
+		   (#o{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs],
     gen_server:call(?SERVER, {c_prohib, W, AR_ids, [], ATE_ids, Prohib});
 c_prohib(W, AR_ids, [#ua{} | _] = ATIs, ATEs, Prohib) ->
-    ATI_ids = lists:usort([(fun(#ua{id = AT_id}) -> AT_id end)(AT) || AT <- ATIs]),
-    ATE_ids = lists:usort([(fun(#ua{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs]),
+    ATI_ids = [(fun(#ua{id = AT_id}) -> AT_id end)(AT) || AT <- ATIs],
+    ATE_ids = [(fun(#ua{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs],
     gen_server:call(?SERVER, {c_prohib, W, AR_ids, ATI_ids, ATE_ids, Prohib});
 c_prohib(W, AR_ids, ATIs, ATEs, Prohib) ->
-    ATI_ids = lists:usort([(fun(#oa{id = AT_id}) -> AT_id;
-			       (#o{id = AT_id}) -> AT_id end)(AT) || AT <- ATIs]),
-    ATE_ids = lists:usort([(fun(#oa{id = AT_id}) -> AT_id;
-			       (#o{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs]),
+    ATI_ids = [(fun(#oa{id = AT_id}) -> AT_id;
+		   (#o{id = AT_id}) -> AT_id end)(AT) || AT <- ATIs],
+    ATE_ids = [(fun(#oa{id = AT_id}) -> AT_id;
+		   (#o{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs],
     gen_server:call(?SERVER, {c_prohib, W, AR_ids, ATI_ids, ATE_ids, Prohib}).
 
 -spec eval_pattern(P, Pattern) -> Result when

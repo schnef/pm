@@ -430,7 +430,7 @@ create_arset(ARset, AR_ids) ->
 		
 	\subsection{allocate\_id(Values)}
 	
-		The function \lstinline|allocate_id(Values)| is used to create a id based on a list of values. This function is used for example in the two functions described in \ref{create_ar_atset}. For example, to create an ARset with the two access rights \lstinline|r| and \lstinline|w|, one would use the function call \lstinline|allocate_id([r, w])| to create the new id.  Subsequent calls to the function with the same list will yield the same id. The order of the elements in the list is not important and duplicates are removed, i.e. \lstinline|[r, w]| is the same as \lstinline|[w, r]| or even \lstinline|[r, r, w, w, w]|.
+		The function \lstinline|allocate_id(Values)| is used to create a id based on a list of values. This function is used for example in the two functions described in \ref{create_ar_atset}. For example, to create an ARset with the two access rights \lstinline|r| and \lstinline|w|, one would use the function call \lstinline|allocate_id([r, w])| to create the new id.  Subsequent calls to the function with the same list will yield the same id. NB: order of the lists elements does make a difference for the generated id, i.e. \lstinline|[a, b]| is \emph{not} the same as \lstinline|[b, a]|.
 		
 	\subsection{create\_assign/3}
 	
@@ -472,7 +472,17 @@ create_assign(G, X, Y) ->
 		
 		\item Against the advice in the specs to distinguish resource and administrative access rights, access rights are currently implemented as the set AR. This makes it a lot easier to use sets of AR (ARSet, ATISet and ATESet). Is this a problem?
 		
-		
+		\item The following list comprehension may seem a little complicated:
+
+		\begin{lstlisting}[basicstyle=\footnotesize, breaklines=false]
+ATE_ids = [(fun(#ua{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs]\end{lstlisting}
+
+		 and one might think it can be replaced by something like:
+
+		\begin{lstlisting}[basicstyle=\footnotesize, breaklines=false]
+ATE_ids = [Id || #ua{id = Id}) <- ATEs]\end{lstlisting}
+
+		 but the first form not only extracts the Id from the record but also checks that each of the elements in the list ATEs is indeed a \lstinline|#uaP{}| record. The second form will silently ignore records of a different type.
 
 	\end{enumerate}
 	
