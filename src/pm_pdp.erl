@@ -237,6 +237,8 @@ conj_prohib(G, ATIs, ATEs, Vpe) ->
 	    false
     end.
 
+in_any(G, Set, Type) when not is_list(Set) ->
+    in_any(G, sets:to_list(Set), Type);
 in_any(_G, [], _Vpe) ->
     false;
 in_any(G, [AT | Rest], Vpe) ->
@@ -248,6 +250,8 @@ in_any(G, [AT | Rest], Vpe) ->
 	    true
     end.
 
+in_all(G, Set, Vpe) when not is_list(Set) ->
+    in_all(G, sets:to_list(Set), Vpe);
 in_all(_G, [], _Vpe) ->
     false;
 in_all(G, [AT | Rest], Vpe) ->

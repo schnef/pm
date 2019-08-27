@@ -17,6 +17,9 @@
 
 	\maketitle
 	\tableofcontents
+	\listoffigures
+	%% \listoftables
+	\lstlistoflistings
 	
 	%% instellingen voor het maken van programma listings
 	\lstset{
@@ -402,7 +405,7 @@ delete_x(G, X) ->
 	
 	The same ARset can used many times all over the PM, e.g. the set {r,w} or just {r} or {w} etc. is probably used in many associations. Instead of creating a new set for each occurrence, a set can be \emph{instantiated} (used) many times.  A set is defined as a tuple with the fields \lstinline|id| for the set's id, \lstinline|value| for the set's actual set of elements, a \lstinline|ref_cnt|  to keep track of the number of times the set is referred to and an \lstinline|inst_cnt| which is equal to the number of instances of the set. The set is also referred from many places and therefor reference counted. The implementation is as follows:
 	
-	\begin{lstlisting}[caption={delete\_u/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+	\begin{lstlisting}[caption={create\_arset/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
 -spec create_arset(ARset :: pm:id(),
                    AR_ids :: nonempty_list(pm:id())) -> ok | no_return().
 create_arset(ARset, AR_ids) ->
@@ -412,15 +415,16 @@ create_arset(ARset, AR_ids) ->
         [begin 
            [AR] = mnesia:read(ar, AR_id, write),
            mnesia:write(AR#ar{ref_cnt = AR#ar.ref_cnt + 1})
-         end || AR_id <- sets:to_list(Value],
+         end || AR_id <- sets:to_list(Value)],
       Set = #set{id = ARset, value = Value, ref_cnt = 0, inst_cnt = 1},
       mnesia:write(arset, Set, write);
     [#set{inst_cnt = N} = Set] ->
       mnesia:write(arset, Set#set{inst_cnt = N + 1}, write)
   end. \end{lstlisting}
 	
-	If a set with id \lstinline|ARset| does not exist yet (line 5), an Erlang set is created for all access rights \lstinline|AR| in the list \lstinline|AR_ids| the \lstinline|ref_cnt| is incremented because the set will reference these access rights. The set \lstinline|Value| is used as the source of the access rights instead of the original list \lstinline|AR_ids| to eliminate duplicates in the list. ARs with a \lstinline|ref_cnt| not being 0 can not be deleted. The actual set of access rights is constructed using the standard Erlang set and is being assigned yo the value field. 
+	If a set with id \lstinline|ARset| does not exist yet (line 5), an Erlang set is created for all access rights \lstinline|AR| in the list \lstinline|AR_ids| the \lstinline|ref_cnt| is incremented because the set will reference these access rights. The set \lstinline|Value| is used as the source of the access rights instead of the original list \lstinline|AR_ids| to eliminate duplicates in the list. ARs with a \lstinline|ref_cnt| not being 0 can not be deleted. The actual set of access rights is constructed using the standard Erlang set and is being assigned to the value field. 
 	
+	If the set does already exist with the id \lstinline|ARset|, its instance count is incremented instead.
 	
 	\section{Sessions}
 	
