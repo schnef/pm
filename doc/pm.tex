@@ -93,7 +93,7 @@
 		\label{fig:simplifiedPEdiagram}
 	\end{figure}
 	
-	The transitive closure of the relation ASSIGN is written as $ASSIGN^+$. The expression $x \ 
+	The transitive closure\footnote{the concept of transitive closure can be thought of as constructing a data structure that makes it possible to answer reachability questions. That is, can one get from node a to node d in one or more hops? A binary relation tells you only that node a is connected to node b, and that node b is connected to node c, etc. After the transitive closure is constructed one may determine that node d is reachable from node a. See this Wikipedia page on transitive closure  \href{https://en.wikipedia.org/wiki/Transitive\_closure\#In\_graph\_theory}{in graph theory}} of the relation ASSIGN is written as $ASSIGN^+$. The expression $x \ 
 	ASSIGN^+ \ y$ denotes that a series of assignments exists from x to y. Transitive closure is synonymous with the concept of containment. For instance, in the example in figure  \ref{fig:simplifiedPEdiagram}, the user attribute $ ua_{12} $ can be said to contain the policy elements $ u_1, u_2, ua_1, ua_2 $, while user attribute $ ua_{11} $ can be said to contain the policy elements $ u_1, ua_1 $.
 	
 	The reflexive and transitive closure of the relation ASSIGN, denoted as $ASSIGN^*$, is a convenient way to represent that one element in PE is contained by another through a 	series of zero or more assignments. Several helpful functions that make use of the transitive closure and the reflexive and transitive closure relations can now be defined. They are the:
@@ -250,8 +250,7 @@ Cmdname(x1 : type1, x2 : type2, ..., xk : typek)
   ... preconditions ...
   {
     Y` = f(Y, x1, x2, ..., xk)
-  }
-		\end{lstlisting}
+  }\end{lstlisting}
 		
 		\item[Administrative routines] consist mainly of a parameterized interface and a  sequence of  administrative command invocations. Administrative routines build upon administrative commands to define the protection capabilities of the PM model. The body of an administrative routine is executed as an atomic transaction—an error or lack of capabilities that causes any of the constituent commands to fail execution causes the entire routine to fail, producing the same effect as though none of the commands were ever executed. Administrative routines are specified using the following format:
 		\begin{lstlisting}
@@ -262,8 +261,7 @@ Rtnname(x1 : type1, x2 : type2, ..., xk : typek)
     condition a cmd2, cmd3;
     . . .
     condition z cmdn;
-  }
-	  \end{lstlisting}
+  }\end{lstlisting}
 
 	\end{description}
 
@@ -284,17 +282,17 @@ Rtnname(x1 : type1, x2 : type2, ..., xk : typek)
 	
 	\begin{description}
 		
-		\item[Policy Enforcement Point]. PM-aware applications must rely on a PEP to gain access to protected resources and to policy information via the interface that it provides, which is typically a programming interface. More than one PEP may exist to service applications. The PEP ensures that access requests are verified as being in conformance with the specified policy, before the accesses in question can proceed. To accomplish this objective, the PEP works in tandem with a PDP and must not be by-passable.
+		\item[Policy Enforcement Point] PM-aware applications must rely on a PEP to gain access to protected resources and to policy information via the interface that it provides, which is typically a programming interface. More than one PEP may exist to service applications. The PEP ensures that access requests are verified as being in conformance with the specified policy, before the accesses in question can proceed. To accomplish this objective, the PEP works in tandem with a PDP and must not be by-passable.
 		
-		\item[Policy Decision Point]. A PDP determines whether an access request made by a PEP complies with policy and renders a grant, deny, or error decision accordingly. The PDP performs the access decision function defined in the PM model. It also carries out all access requests that involve administrative operations for which a grant decision has been rendered. Multiple PDPs may exist in the PM environment.
+		\item[Policy Decision Point] A PDP determines whether an access request made by a PEP complies with policy and renders a grant, deny, or error decision accordingly. The PDP performs the access decision function defined in the PM model. It also carries out all access requests that involve administrative operations for which a grant decision has been rendered. Multiple PDPs may exist in the PM environment.
 		
-		\item[Policy Information Point]. The PIP contains the data structures that define the policy elements and the relationships between policy elements that collectively constitute the access control policy enforced by the PM. Conceptually, the PIP embodies a reification of the administrative commands.
+		\item[Policy Information Point] The PIP contains the data structures that define the policy elements and the relationships between policy elements that collectively constitute the access control policy enforced by the PM. Conceptually, the PIP embodies a reification of the administrative commands.
 		
-		\item[Resource Access Point]. A RAP allows one or more PEPs to gain access to protected resources. The only method of accessing protected resources is via a RAP. Multiple RAPs can exist, but each protected resource is accessible only through a single RAP. The PEP issues a command containing its identifier, the location of the physical resource, the operation, and any required data to the RAP. The RAP returns data and status information to the PEP. The RAP does not allow access to resources to any component other than a PEP.
+		\item[Resource Access Point] A RAP allows one or more PEPs to gain access to protected resources. The only method of accessing protected resources is via a RAP. Multiple RAPs can exist, but each protected resource is accessible only through a single RAP. The PEP issues a command containing its identifier, the location of the physical resource, the operation, and any required data to the RAP. The RAP returns data and status information to the PEP. The RAP does not allow access to resources to any component other than a PEP.
 
-		\item[Policy Administration Point]. A single PAP manages all access to the contents of the PIP, similar to the way a RAP serves as a managed access point to protected resources. A PAP provides read, modify, and write access to the content within the PIP (i.e., the policy configuration). A PAP limits the EPP to read access only, but allows a PDP both read and write access.
+		\item[Policy Administration Point] A single PAP manages all access to the contents of the PIP, similar to the way a RAP serves as a managed access point to protected resources. A PAP provides read, modify, and write access to the content within the PIP (i.e., the policy configuration). A PAP limits the EPP to read access only, but allows a PDP both read and write access.
 		
-		\item[Event Processing Point]. A single EPP is responsible for comparing events against event patterns that have been defined in obligations residing at the PIP. For each event pattern that is matched with an event, the EPP uses a PDP to make an access request decision on the associated event response (i.e., the sequence of administrative actions defined for each obligation), and to carry out the response if the definer of the obligation holds sufficient authorization. The EPP can be viewed as a transaction processing monitor, whose performance is crucial to the overall effectiveness of the architecture.
+		\item[Event Processing Point] A single EPP is responsible for comparing events against event patterns that have been defined in obligations residing at the PIP. For each event pattern that is matched with an event, the EPP uses a PDP to make an access request decision on the associated event response (i.e., the sequence of administrative actions defined for each obligation), and to carry out the response if the definer of the obligation holds sufficient authorization. The EPP can be viewed as a transaction processing monitor, whose performance is crucial to the overall effectiveness of the architecture.
 		
 	\end{description}
 
@@ -312,7 +310,7 @@ Rtnname(x1 : type1, x2 : type2, ..., xk : typek)
 
 		\item[A digraph G] which implements the acyclic digraph the PM uses. Currently, a single digraph is used but this is likely to change because PCs may be implemented as separate digraphs;
 		
-		\item[A database], currently implemented using Mnesia, which stores all elements and sets the PM relies on.
+		\item[A database] currently implemented using Mnesia, which stores all elements and sets the PM relies on.
 		
 	\end{description}
 	
@@ -326,7 +324,7 @@ Rtnname(x1 : type1, x2 : type2, ..., xk : typek)
 	
 	In the specs, adding an element involves the U, UA O etc. in the PIP. In this implementation, the U, UA O etc. are added to the database in the PAP with the pm relevant parts being added using the PIP. For example, in the PAP the function \lstinline|c_u_in_ua| does the following:
 	
-	\begin{lstlisting}
+	\begin{lstlisting}[caption={Administrative routine c\_u\_in\_ua/2}]
 c_u_in_ua(#u{} = U, #ua{id = Y}) ->
     ...
     X = pm_pip:allocate_id(),
@@ -336,15 +334,13 @@ c_u_in_ua(#u{} = U, #ua{id = Y}) ->
 	
 	For the user a new id is generated which is assigned to X. The PIP is called to add the assignment X to Y, with Y holding the id of the UA, after which the U record is saved to the database along with the data the U record already holds, e.g. the user name.
 		
-	The administrative functions as defined in appendix C, all include extensive error checking on elements passed in as argument on being a member or not being e member of a particular set. In the implementation, these checks are omitted because the implementation does guaranty that every newly created element X is always unique and the functions always fail if an element Y does not already exist.
-	
-	\footnote{Currently, the existence of element Y is checked by examining the set PE. If Y is not found, the function fails which will make the enclosing transaction fail. This check does not check for Y to belong to a particular set, e.g. Y belonging to UA. Is this a problem?}
+	The administrative functions as defined in appendix C, all include extensive error checking on elements passed in as argument on being a member or not being e member of a particular set. In the implementation, these checks are omitted because the implementation does guaranty that every newly created element X is always unique and the functions always fail if an element Y does not already exist.	\footnote{Currently, the existence of element Y is checked by examining the set PE. If Y is not found, the function fails which will make the enclosing transaction fail. This check does not check for Y to belong to a particular set, e.g. Y belonging to UA. Is this a problem?}
 	
 	\subsection{create\_x\_in\_y}
 	
 	The \lstinline|create_x_in_y(G, X, Y)| functions takes a digraph G and adds element X to element Y.
 		
-	\begin{lstlisting}[caption={create\_x\_in\_y}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+	\begin{lstlisting}[caption={create\_x\_in\_y/3}, basicstyle=\footnotesize, breaklines=false, numbers=left]
 -spec create_x_in_y(G :: digraph:graph(),
                     X :: pm:id(),
                     Y :: pm:id()) ->
@@ -379,6 +375,18 @@ create_x_in_y(G, X, Y) ->
 	The values for the vertexes and edges in the database are used to address the current digraph directly without the need for searching. The moment the digraph becomes inconsistent, after a transaction fails, the digraph must be rebuild from the PE and assignment entries in the database, with the recalculated vertexes and edges.
 	
 	\section{Sessions}
+	
+	\chapter{Notes}
+	
+	\begin{enumerate}
+
+		\item Use the tuple {X, Y} as the label of the edge, instead of only Y, in the function \lstinline|pip:create_x_in_y/3|. This is more in line with the description of the directed graph on p15. But, is the label used? Adding labels requires resources.
+		
+		\item Should the functions Users, Objects and Elements be implemented (p16)? Can this be done using functions from the module \lstinline|digraph_utils|?
+		
+		\item Should a separate digraph be used for every policy class (\S 3.2.3 p17)?
+
+	\end{enumerate}
 	
 	\bibliographystyle{plain}
 	\bibliography{pm}

@@ -6,7 +6,11 @@
 -include("pm.hrl").
 
 %% API
--export([create_x_in_y/3, create_x/2, delete_x/2, % create_p/2, 
+-export([%create_x_in_y/3, create_x/2, delete_x/2,
+	 create_pc/2,
+	 create_u_in_ua/3, create_ua_in_ua/3, create_ua_in_pc/3,
+	 create_o_in_oa/3, create_oa_in_oa/3, create_oa_in_pc/3,
+	 delete_u/2, delete_ua/2, delete_o/2, delete_oa/2, delete_pc/2,
 	 create_rop/1, create_aop/1, create_ar/1, create_arset/2,
 	 delete_rop/1, delete_aop/1, delete_ar/1, delete_arset/1,
 	 create_atiset/2, create_ateset/2, create_pattern/2, create_response/2,
@@ -23,13 +27,76 @@
 %%%===================================================================
 
 %% C.2 Element Creation Commands
+-spec create_u_in_ua(G, U, UA) -> {ok, pm:u()} | no_return() when
+      G :: digraph:graph(),
+      U :: pm:u(),
+      UA :: pm:ua().
+%% @doc add user `U' to the policy representation and assign it to user attribute `UA'
+create_u_in_ua(G, #u{id = X} = U, #ua{id = Y}) ->
+    create_x_in_y(G, X, Y),
+    mnesia:write(U),
+    {ok, U}.
+
+-spec create_ua_in_ua(G, UA1, UA2) -> {ok, pm:ua()} | no_return() when
+      G :: digraph:graph(),
+      UA1 :: pm:ua(),
+      UA2 :: pm:ua().
+%% @doc add user attribute `UA1' and assign it to user attribute `UA2'
+create_ua_in_ua(G, #ua{id = X} = UA1, #ua{id = Y}) ->
+    create_x_in_y(G, X, Y),
+    mnesia:write(UA1),
+    {ok, UA1}.
+
+-spec create_ua_in_pc(G, UA, PC) -> {ok, pm:ua()} | no_return() when
+      G :: digraph:graph(),
+      UA :: pm:ua(),
+      PC :: pm:pc().
+%% @doc add user attribute `UA' and assign it to policy class `PC'
+create_ua_in_pc(G, #ua{id = X} = UA, #pc{id = Y}) ->
+    create_x_in_y(G, X, Y),
+    mnesia:write(UA),
+    {ok, UA}.
+
+-spec create_o_in_oa(G, O, OA) -> {ok, pm:o()} | no_return() when
+      G :: digraph:graph(),
+      O :: pm:o(),
+      OA :: pm:oa().
+%% @doc add object `O' to the policy representation and assign it to object attribute `OA'
+create_o_in_oa(G, #o{id = X} = O, #oa{id = Y}) ->
+    create_x_in_y(G, X, Y),
+    mnesia:write(O),
+    {ok, O}.
+
+-spec create_oa_in_oa(G, OA1, OA2) -> {ok, pm:oa()} | no_return() when
+      G :: digraph:graph(),
+      OA1 :: pm:oa(),
+      OA2 :: pm:oa().
+%% @doc add object attribute `OA1' and assign it to object attribute `OA2'
+create_oa_in_oa(G, #oa{id = X} = OA1, #oa{id = Y}) ->
+    create_x_in_y(G, X, Y),
+    mnesia:write(OA1),
+    {ok, OA1}.
+
+-spec create_oa_in_pc(G, OA, PC) -> {ok, pm:oa()} | no_return() when
+      G :: digraph:graph(),
+      OA :: pm:oa(),
+      PC :: pm:pc().
+%% @doc add object attribute `OA' and assign it to policy class `PC'
+create_oa_in_pc(G, #oa{id = X} = OA, #pc{id = Y}) ->
+    create_x_in_y(G, X, Y),
+    mnesia:write(OA),
+    {ok, OA}.
+
 -spec create_x_in_y(G :: digraph:graph(), X :: pm:id(), Y :: pm:id()) -> ok | no_return().
+%% @doc add `X' and assign it to `Y' in digraph `G'. Also add `X' to
+%% the set PE and {X, Y} to the set ASSIGN.
 create_x_in_y(G, X, Y) ->
     [#pe{vertex = Vy} = PEY] = mnesia:read(pe, Y, write),
     case digraph:add_vertex(G) of
 	{error, Reason} ->
 	    erlang:error(Reason);
 	Vx ->
+	    %% TODO: is label used? should the label be {X, Y} as an ASSIGN?
 	    case digraph:add_edge(G, Vx, Vy, Y) of
 		{error, Reason} ->
 		    erlang:error(Reason);
@@ -40,9 +107,18 @@ create_x_in_y(G, X, Y) ->
 		    mnesia:write(#assign{a = X, b = Y, edge = Edge})
 	    end
     end.
+
+-spec create_pc(G, PC) -> {ok, pm:pc()} | no_return() when
+      G :: digraph:graph(),
+      PC :: pm:pc().
+%% @doc add a policy class `PC' to the policy representation
+create_pc(G, #pc{id = X} = PC) ->
+    create_x(G, X),
+    mnesia:write(PC),
+    {ok, PC}.
     
 -spec create_x(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
-%% @doc add a policy element x to the policy representation
+%% @doc add a policy element x to the digraph `G' and to the set PE.
 create_x(G, X) ->
     case digraph:add_vertex(G) of
 	{error, Reason} ->
@@ -52,6 +128,37 @@ create_x(G, X) ->
     end.
 
 %% C.3 Element Deletion Commands
+-spec delete_u(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
+delete_u(G, X) ->
+    [#u{}] = mnesia:read(u, X, write),
+    delete_x(G, X),
+    mnesia:delete({u, X}).
+
+-spec delete_ua(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
+delete_ua(G, X) ->
+    [#ua{}] = mnesia:read(ua, X, write),
+    delete_x(G, X),
+    mnesia:delete({ua, X}).
+
+-spec delete_o(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
+delete_o(G, X) ->
+    [#o{}] = mnesia:read(o, X, write),
+    delete_x(G, X),
+    mnesia:delete({o, X}).
+
+-spec delete_oa(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
+delete_oa(G, X) ->
+    [#oa{}] = mnesia:read(oa, X, write),
+    delete_x(G, X),
+    mnesia:delete({oa, X}).
+
+-spec delete_pc(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
+delete_pc(G, X) ->
+    [#pc{}] = mnesia:read(pc, X, write),
+    delete_x(G, X),
+    mnesia:delete({pc, X}).
+
+
 -spec delete_x(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
 %% @doc delete a policy element x from the policy representation
 delete_x(G, X) ->

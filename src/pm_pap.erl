@@ -57,88 +57,55 @@
       UA :: pm:ua(),
       Result :: {ok, pm:u()} | {error, Reason :: term()}.
 %% @doc create a u assigned to ua
-c_u_in_ua(#u{} = U, #ua{id = Id}) ->
-    case gen_server:call(?SERVER, {c_u_in_ua, U, Id}) of
-	{ok, U_id} ->
-	    {ok, #u{id = U_id}};
-	Error ->
-	    Error
-    end.
+c_u_in_ua(#u{} = U, #ua{} = UA) ->
+    gen_server:call(?SERVER, {c_u_in_ua, U, UA}).
 
 -spec c_ua_in_ua(UA1, UA2) -> Result when
       UA1 :: pm:ua(),
       UA2 :: pm:ua(),
       Result :: {ok, pm:ua()} | {error, Reason :: term()}.
 %% @doc create a ua, x, assigned to ua
-c_ua_in_ua(#ua{} = UA, #ua{id = Id}) ->
-    c_ua_in_y(UA, Id).
+c_ua_in_ua(#ua{} = UA1, #ua{} = UA2) ->
+    gen_server:call(?SERVER, {c_ua_in_ua, UA1, UA2}).
 
 -spec c_ua_in_pc(UA, PC) -> Result when
       UA :: pm:ua(),
       PC :: pm:pc(),
       Result :: {ok, pm:ua()} | {error, Reason :: term()}.
 %% @doc create a ua in pc
-c_ua_in_pc(#ua{} = UA, #pc{id = Id}) ->
-    c_ua_in_y(UA, Id).
-
-%% @private
-c_ua_in_y(UA, Id) ->
-    case gen_server:call(?SERVER, {c_ua_in_y, UA, Id}) of
-	{ok, UA_id} ->
-	    {ok, #ua{id = UA_id}};
-	Error ->
-	    Error
-    end.
+c_ua_in_pc(#ua{} = UA, #pc{} = PC) ->
+    gen_server:call(?SERVER, {c_ua_in_pc, UA, PC}).
 
 -spec c_o_in_oa(O, OA) -> Result when
       O :: pm:o(),
       OA :: pm:oa(),
       Result :: {ok, pm:o()} | {error, Reason :: term()}.
 %% @doc create a o assigned to oa
-c_o_in_oa(#o{} = O, #oa{id = Id}) ->
-    case gen_server:call(?SERVER, {c_o_in_oa, O, Id}) of
-	{ok, O_id} ->
-	    {ok, #o{id = O_id}};
-	Error ->
-	    Error
-    end.
+c_o_in_oa(#o{} = O, #oa{} = OA) ->
+    gen_server:call(?SERVER, {c_o_in_oa, O, OA}).
 
 -spec c_oa_in_oa(OA1, OA2) -> Result when
       OA1 :: pm:oa(),
       OA2 :: pm:oa(),
       Result :: {ok, pm:oa()} | {error, Reason :: term()}.
 %% @doc create a oa, x, assigned to oa
-c_oa_in_oa(#oa{} = OA, #oa{id = Id}) ->
-    c_oa_in_y(OA, Id).
+c_oa_in_oa(#oa{} = OA1, #oa{} = OA2) ->
+    gen_server:call(?SERVER, {c_oa_in_oa, OA1, OA2}).
 
 -spec c_oa_in_pc(OA, PC) -> Result when
       OA :: pm:oa(),
       PC :: pm:pc(),
       Result :: {ok, pm:oa()} | {error, Reason :: term()}.
 %% @doc create a oa in pc
-c_oa_in_pc(#oa{} = OA, #pc{id = Id}) ->
-    c_oa_in_y(OA, Id).
-
-%% @private
-c_oa_in_y(OA, Id) ->
-    case gen_server:call(?SERVER, {c_oa_in_y, OA, Id}) of
-	{ok, OA_id} ->
-	    {ok, #oa{id = OA_id}};
-	Error ->
-	    Error
-    end.
+c_oa_in_pc(#oa{} = OA, #pc{} = PC) ->
+    gen_server:call(?SERVER, {c_oa_in_pc, OA, PC}).
 
 -spec c_pc(PC) -> Result when
       PC :: pm:pc(),
       Result :: {ok, pm:pc()} | {error, Reason :: term()}.
 %% @doc create a policy class
 c_pc(#pc{} = PC) ->
-    case gen_server:call(?SERVER, {c_pc, PC}) of
-	{ok, PC_id} ->
-	    {ok, #pc{id = PC_id}};
-	Error ->
-	    Error
-    end.
+    gen_server:call(?SERVER, {c_pc, PC}).
 
 -spec c_u_to_ua(U, UA) -> Result when
       U :: pm:u(),
@@ -588,36 +555,40 @@ init([]) ->
     {ok, #state{g = G, pu = PU}}.
 
 %% @private
-handle_call({c_u_in_ua, U, Y}, _From, #state{g = G} = State) ->
+handle_call({c_u_in_ua, U, UA}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      X = pm_pip:allocate_id(),
-		      pm_pip:create_x_in_y(G, X, Y),
-		      mnesia:write(U#u{id = X}),
-		      {ok, X}
+		      Id = pm_pip:allocate_id(),
+		      pm_pip:create_u_in_ua(G, U#u{id = Id}, UA)
 	      end),
     {reply, Reply, State};
-handle_call({c_ua_in_y, UA, Y}, _From, #state{g = G} = State) ->
+handle_call({c_ua_in_ua, UA1, UA2}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      X = pm_pip:allocate_id(),
-		      pm_pip:create_x_in_y(G, X, Y),
-		      mnesia:write(UA#ua{id = X}),
-		      {ok, X}
+		      Id = pm_pip:allocate_id(),
+		      pm_pip:create_ua_in_ua(G, UA1#ua{id = Id}, UA2)
 	      end),
     {reply, Reply, State};
-handle_call({c_o_in_oa, O, Y}, _From, #state{g = G} = State) ->
+handle_call({c_ua_in_pc, UA, PC}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      X = pm_pip:allocate_id(),
-		      pm_pip:create_x_in_y(G, X, Y),
-		      mnesia:write(O#o{id = X}),
-		      {ok, X}
+		      Id = pm_pip:allocate_id(),
+		      pm_pip:create_ua_in_pc(G, UA#ua{id = Id}, PC)
 	      end),
     {reply, Reply, State};
-handle_call({c_oa_in_y, OA, Y}, _From, #state{g = G} = State) ->
+handle_call({c_o_in_oa, O, OA}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      X = pm_pip:allocate_id(),
-		      pm_pip:create_x_in_y(G, X, Y),
-		      mnesia:write(OA#oa{id = X}),
-		      {ok, X}
+		      Id = pm_pip:allocate_id(),
+		      pm_pip:create_o_in_oa(G, O#o{id = Id}, OA)
+	      end),
+    {reply, Reply, State};
+handle_call({c_oa_in_oa, OA1, OA2}, _From, #state{g = G} = State) ->
+    Reply = t(fun() ->
+		      Id = pm_pip:allocate_id(),
+		      pm_pip:create_oa_in_oa(G, OA1#oa{id = Id}, OA2)
+	      end),
+    {reply, Reply, State};
+handle_call({c_oa_in_pc, OA, PC}, _From, #state{g = G} = State) ->
+    Reply = t(fun() ->
+		      Id = pm_pip:allocate_id(),
+		      pm_pip:create_oa_in_pc(G, OA#oa{id = Id}, PC)
 	      end),
     {reply, Reply, State};
 handle_call({c_assign, X, Y}, _From, #state{g = G} = State) ->
@@ -627,10 +598,8 @@ handle_call({c_assign, X, Y}, _From, #state{g = G} = State) ->
     {reply, Reply, State};
 handle_call({c_pc, PC}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      X = pm_pip:allocate_id(),
-		      pm_pip:create_x(G, X),
-		      mnesia:write(PC#pc{id = X}),
-		      {ok, X}
+		      Id = pm_pip:allocate_id(),
+		      pm_pip:create_pc(G, PC#pc{id = Id})
 	      end),
     {reply, Reply, State};
 handle_call({c_assoc, X, AR_ids, Z}, _From, State) ->
@@ -677,37 +646,29 @@ handle_call({c_oblig, P, Patterns, Responses}, _From, #state{pu = PU} = State) -
     {reply, Reply, State};
 %% TODO: Review the test for record existing before deletion. Deleting
 %% in Mnesia always yield an 'ok' even if the record didn't exist.
-handle_call({d_u_in_ua, U, UA}, _From, #state{g = G, pu = PU} = State) ->
+handle_call({d_u_in_ua, X, Y}, _From, #state{g = G, pu = PU} = State) ->
     Reply = t(fun() ->
-		      false = lists:keymember(U, #process_user.u, PU),
-		      [#u{}] = mnesia:read(u, U, write),
-		      pm_pip:delete_assign(G, U, UA),
-		      pm_pip:delete_x(G, U),
-		      mnesia:delete({u, U})
+		      false = lists:keymember(X, #process_user.u, PU),
+		      pm_pip:delete_assign(G, X, Y),
+		      pm_pip:delete_u(G, X)
 	      end),
     {reply, Reply, State};
-handle_call({d_ua_in_y, UA, Y}, _From, #state{g = G} = State) ->
+handle_call({d_ua_in_y, X, Y}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      [#ua{}] = mnesia:read(ua, UA, write),
-		      pm_pip:delete_assign(G, UA, Y),
-		      pm_pip:delete_x(G, UA),
-		      mnesia:delete({ua, UA})
+		      pm_pip:delete_assign(G, X, Y),
+		      pm_pip:delete_ua(G, X)
 	      end),
     {reply, Reply, State};
-handle_call({d_o_in_oa, O, OA}, _From, #state{g = G} = State) ->
+handle_call({d_o_in_oa, X, Y}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      [#o{}] = mnesia:read(o, O, write),
-		      pm_pip:delete_assign(G, O, OA),
-		      pm_pip:delete_x(G, O),
-		      mnesia:delete({o, O})
+		      pm_pip:delete_assign(G, X, Y),
+		      pm_pip:delete_o(G, X)
 	      end),
     {reply, Reply, State};
-handle_call({d_oa_in_y, OA, Y}, _From, #state{g = G} = State) ->
+handle_call({d_oa_in_y, X, Y}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      [#oa{}] = mnesia:read(oa, OA, write),
-		      pm_pip:delete_assign(G, OA, Y),
-		      pm_pip:delete_x(G, OA),
-		      mnesia:delete({oa, OA})
+		      pm_pip:delete_assign(G, X, Y),
+		      pm_pip:delete_oa(G, X)
 	      end),
     {reply, Reply, State};
 handle_call({d_assign, X, Y}, _From, #state{g = G} = State) ->
@@ -715,10 +676,9 @@ handle_call({d_assign, X, Y}, _From, #state{g = G} = State) ->
 		      pm_pip:delete_assign(G, X, Y)
 	      end),
     {reply, Reply, State};
-handle_call({d_pc, PC}, _From, #state{g = G} = State) ->
+handle_call({d_pc, X}, _From, #state{g = G} = State) ->
     Reply = t(fun() ->
-		      pm_pip:delete_x(G, PC),
-		      mnesia:delete({pc, PC})
+		      pm_pip:delete_pc(G, X)
 	      end),
     {reply, Reply, State};
 handle_call({d_assoc, UA, ARset, AT}, _From, State) ->
