@@ -268,7 +268,7 @@ allocate_id(Values) when is_list(Values) ->
     %% set, you can _NOT_ change the range anymore since the result of
     %% the hash differs!
     %% erlang:phash2(Values). 
-    erlang:phash2(Values, 16#100000000).
+    erlang:phash2(list:usort(Values), 16#100000000).
 
 %% C.5 Entity deletion
 -spec delete_p(X :: pm:p(), PU :: [#process_user{}]) -> [#process_user{}] | no_return().
