@@ -6,11 +6,10 @@
 -include("pm.hrl").
 
 %% API
--export([%create_x_in_y/3, create_x/2, delete_x/2,
-	 create_pc/2,
+-export([create_pc/2, delete_pc/2,
 	 create_u_in_ua/3, create_ua_in_ua/3, create_ua_in_pc/3,
 	 create_o_in_oa/3, create_oa_in_oa/3, create_oa_in_pc/3,
-	 delete_u/2, delete_ua/2, delete_o/2, delete_oa/2, delete_pc/2,
+	 delete_u/2, delete_ua/2, delete_o/2, delete_oa/2,
 	 create_rop/1, create_aop/1, create_ar/1, create_arset/2,
 	 delete_rop/1, delete_aop/1, delete_ar/1, delete_arset/1,
 	 create_atiset/2, create_ateset/2, create_pattern/2, create_response/2,

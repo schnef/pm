@@ -374,6 +374,54 @@ create_x_in_y(G, X, Y) ->
 	
 	The values for the vertexes and edges in the database are used to address the current digraph directly without the need for searching. The moment the digraph becomes inconsistent, after a transaction fails, the digraph must be rebuild from the PE and assignment entries in the database, with the recalculated vertexes and edges.
 	
+	\subsection{delete\_u/2 and similar functions}
+	
+	The functions for deleting a user, user attribute, object or object attribute all look very similar:
+	
+	\begin{lstlisting}[caption={delete\_u/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+-spec delete_u(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
+delete_u(G, X) ->
+    [#u{}] = mnesia:read(u, X, write),
+    delete_x(G, X),
+    mnesia:delete({u, X}). \end{lstlisting}
+	
+	Each of these functions start by fetching the record from the database and matching it to its record type. If the policy element does not exist, this will raise an error which will abort the enclosing transaction. Next, the digraph is updated and the element is actually removed from the database.
+	
+	\begin{lstlisting}[caption={delete\_x/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+delete_x(G, X) ->
+    %% ref_cnt must be zero for this action!  
+    [#pe{vertex = V, ref_cnt = 0} = PE] = mnesia:read(pe, X, write),
+    digraph:del_vertex(G, V),
+    mnesia:delete_object(PE). \end{lstlisting}
+    
+    A policy element can only be deleted if there are no other elements referring to it. The match in line 3 will make the function fail if the reference count is not 0. Deleting the vertex from the digraph will also delete edges emanating from V or incident on V.
+
+	\subsection{create\_arset/2}
+	
+	This function creates a access rights set, i.e. a set with one or more access rights. It takes two arguments, the id of the set and a list with access rights and stores a representation of it in the database.
+	
+	The same ARset can used many times all over the PM, e.g. the set {r,w} or just {r} or {w} etc. is probably used in many associations. Instead of creating a new set for each occurrence, a set can be \emph{instantiated} (used) many times.  A set is defined as a tuple with the fields \lstinline|id| for the set's id, \lstinline|value| for the set's actual set of elements, a \lstinline|ref_cnt|  to keep track of the number of times the set is referred to and an \lstinline|inst_cnt| which is equal to the number of instances of the set. The set is also referred from many places and therefor reference counted. The implementation is as follows:
+	
+	\begin{lstlisting}[caption={delete\_u/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+-spec create_arset(ARset :: pm:id(),
+                   AR_ids :: nonempty_list(pm:id())) -> ok | no_return().
+create_arset(ARset, AR_ids) ->
+  case mnesia:read(arset, ARset, read) of
+    [] ->
+	    Value = sets:from_list(AR_ids),
+        [begin 
+           [AR] = mnesia:read(ar, AR_id, write),
+           mnesia:write(AR#ar{ref_cnt = AR#ar.ref_cnt + 1})
+         end || AR_id <- sets:to_list(Value],
+      Set = #set{id = ARset, value = Value, ref_cnt = 0, inst_cnt = 1},
+      mnesia:write(arset, Set, write);
+    [#set{inst_cnt = N} = Set] ->
+      mnesia:write(arset, Set#set{inst_cnt = N + 1}, write)
+  end. \end{lstlisting}
+	
+	If a set with id \lstinline|ARset| does not exist yet (line 5), an Erlang set is created for all access rights \lstinline|AR| in the list \lstinline|AR_ids| the \lstinline|ref_cnt| is incremented because the set will reference these access rights. The set \lstinline|Value| is used as the source of the access rights instead of the original list \lstinline|AR_ids| to eliminate duplicates in the list. ARs with a \lstinline|ref_cnt| not being 0 can not be deleted. The actual set of access rights is constructed using the standard Erlang set and is being assigned yo the value field. 
+	
+	
 	\section{Sessions}
 	
 	\chapter{Notes}
@@ -385,6 +433,10 @@ create_x_in_y(G, X, Y) ->
 		\item Should the functions Users, Objects and Elements be implemented (p16)? Can this be done using functions from the module \lstinline|digraph_utils|?
 		
 		\item Should a separate digraph be used for every policy class (\S 3.2.3 p17)?
+		
+		\item Against the advice in the specs to distinguish resource and administrative access rights, access rights are currently implemented as the set AR. This makes it a lot easier to use sets of AR (ARSet, ATISet and ATESet). Is this a problem?
+		
+		
 
 	\end{enumerate}
 	

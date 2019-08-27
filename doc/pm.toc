@@ -18,5 +18,7 @@
 \contentsline {section}{\numberline {3.1}Handling failures}{23}{section.3.1}
 \contentsline {section}{\numberline {3.2}Policy Information Point}{23}{section.3.2}
 \contentsline {subsection}{\numberline {3.2.1}create\_x\_in\_y}{25}{subsection.3.2.1}
-\contentsline {section}{\numberline {3.3}Sessions}{26}{section.3.3}
-\contentsline {chapter}{\numberline {4}Notes}{27}{chapter.4}
+\contentsline {subsection}{\numberline {3.2.2}delete\_u/2 and similar functions}{26}{subsection.3.2.2}
+\contentsline {subsection}{\numberline {3.2.3}create\_arset/2}{27}{subsection.3.2.3}
+\contentsline {section}{\numberline {3.3}Sessions}{27}{section.3.3}
+\contentsline {chapter}{\numberline {4}Notes}{29}{chapter.4}

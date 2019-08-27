@@ -18,5 +18,7 @@
 \BOOKMARK [1][-]{section.3.1}{Handling failures}{chapter.3}% 18
 \BOOKMARK [1][-]{section.3.2}{Policy Information Point}{chapter.3}% 19
 \BOOKMARK [2][-]{subsection.3.2.1}{create\137x\137in\137y}{section.3.2}% 20
-\BOOKMARK [1][-]{section.3.3}{Sessions}{chapter.3}% 21
-\BOOKMARK [0][-]{chapter.4}{Notes}{}% 22
+\BOOKMARK [2][-]{subsection.3.2.2}{delete\137u/2 and similar functions}{section.3.2}% 21
+\BOOKMARK [2][-]{subsection.3.2.3}{create\137arset/2}{section.3.2}% 22
+\BOOKMARK [1][-]{section.3.3}{Sessions}{chapter.3}% 23
+\BOOKMARK [0][-]{chapter.4}{Notes}{}% 24
