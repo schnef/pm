@@ -341,9 +341,9 @@ c_u_in_ua(#u{} = U, #ua{id = Y}) ->
 	
 	\subsection{create\_x\_in\_y}
 	
-	The \lstinline|create_x_in_y(G, X, Y)| functions takes a digraph G and adds element X to element Y.
+		The \lstinline|create_x_in_y(G, X, Y)| functions takes a digraph G and adds element X to element Y.
 		
-	\begin{lstlisting}[caption={create\_x\_in\_y/3}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		\begin{lstlisting}[caption={create\_x\_in\_y/3}, basicstyle=\footnotesize, breaklines=false, numbers=left]
 -spec create_x_in_y(G :: digraph:graph(),
                     X :: pm:id(),
                     Y :: pm:id()) ->
@@ -365,66 +365,98 @@ create_x_in_y(G, X, Y) ->
       end
   end. \end{lstlisting}		
 	
-	X is a new element, identified by its GUID. In the specs, the check $ X \notin GUID $ is made, but since this implementation guarantees that each and every new GUID is always unique, the check is omitted.
+		X is a new element, identified by its GUID. In the specs, the check $ X \notin GUID $ is made, but since this implementation guarantees that each and every new GUID is always unique, the check is omitted.
 	
-	Also in the specs, the check is made that X is not yet defined for the set it is added to, e.g. if X is U(ser), the check is made that X is not yet part of U. This guard is also omitted because every new element always has a unique id as described in the previously and therefor X cannot exist in the set.
-	
-	It is the responsibility of the calling function not to pass-in an already existing X but always first allocate a new id before calling the create functions.
-	
-	The next guard in the specs always is to check for Y being a member of a particular set, e.g. $ Y \in UA $, $ Y \in OA $ etc. Because we assume the functions calling this function are correct, a guard as this will always return true and has no added value and can therefor be omitted. This function is never called directly by some user code and because of that no errors can be made. Actually, the previous statement is not entirely true, because the match statement in line 6 does make sure Y exists. The match fails if $ Y \notin PE $. Line 6 matches the vertex belonging to Y to Vy and also the whole PE record to PEY for later use.
-	
-	A vertex for X is added to the digraph in line 7, which may fail if the system runs out of resources in which case an error is raised. If the vertex for X is created successfully, an edge is created in line 11, emanating from Vx and incident on Vy and is labeled with Y's id, which may fail in which case an error is raised. X, including the vertex belonging to it, is added to the database as a policy element (PE) with the initial reference count set to one. The database is updated for the PE Y with its reference count incremented by one. Last, the database is updated for the ASSIGN set with a set to X, b set to Y and a reference to the newly created edge.
-	
-	The values for the vertexes and edges in the database are used to address the current digraph directly without the need for searching. The moment the digraph becomes inconsistent, after a transaction fails, the digraph must be rebuild from the PE and assignment entries in the database, with the recalculated vertexes and edges.
-	
+		Also in the specs, the check is made that X is not yet defined for the set it is added to, e.g. if X is U(ser), the check is made that X is not yet part of U. This guard is also omitted because every new element always has a unique id as described in the previously and therefor X cannot exist in the set.
+		
+		It is the responsibility of the calling function not to pass-in an already existing X but always first allocate a new id before calling the create functions.
+		
+		The next guard in the specs always is to check for Y being a member of a particular set, e.g. $ Y \in UA $, $ Y \in OA $ etc. Because we assume the functions calling this function are correct, a guard as this will always return true and has no added value and can therefor be omitted. This function is never called directly by some user code and because of that no errors can be made. Actually, the previous statement is not entirely true, because the match statement in line 6 does make sure Y exists. The match fails if $ Y \notin PE $. Line 6 matches the vertex belonging to Y to Vy and also the whole PE record to PEY for later use.
+		
+		A vertex for X is added to the digraph in line 7, which may fail if the system runs out of resources in which case an error is raised. If the vertex for X is created successfully, an edge is created in line 11, emanating from Vx and incident on Vy and is labeled with Y's id, which may fail in which case an error is raised. X, including the vertex belonging to it, is added to the database as a policy element (PE) with the initial reference count set to one. The database is updated for the PE Y with its reference count incremented by one. Last, the database is updated for the ASSIGN set with a set to X, b set to Y and a reference to the newly created edge.
+		
+		The values for the vertexes and edges in the database are used to address the current digraph directly without the need for searching. The moment the digraph becomes inconsistent, after a transaction fails, the digraph must be rebuild from the PE and assignment entries in the database, with the recalculated vertexes and edges.
+		
 	\subsection{delete\_u/2 and similar functions}
 	
-	The functions for deleting a user, user attribute, object or object attribute all look very similar:
-	
-	\begin{lstlisting}[caption={delete\_u/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		The functions for deleting a user, user attribute, object or object attribute all look very similar:
+		
+		\begin{lstlisting}[caption={delete\_u/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
 -spec delete_u(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
 delete_u(G, X) ->
     [#u{}] = mnesia:read(u, X, write),
     delete_x(G, X),
     mnesia:delete({u, X}). \end{lstlisting}
 	
-	Each of these functions start by fetching the record from the database and matching it to its record type. If the policy element does not exist, this will raise an error which will abort the enclosing transaction. Next, the digraph is updated and the element is actually removed from the database.
-	
-	\begin{lstlisting}[caption={delete\_x/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		Each of these functions start by fetching the record from the database and matching it to its record type. If the policy element does not exist, this will raise an error which will abort the enclosing transaction. Next, the digraph is updated and the element is actually removed from the database.
+		
+		\begin{lstlisting}[caption={delete\_x/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
 delete_x(G, X) ->
     %% ref_cnt must be zero for this action!  
     [#pe{vertex = V, ref_cnt = 0} = PE] = mnesia:read(pe, X, write),
     digraph:del_vertex(G, V),
     mnesia:delete_object(PE). \end{lstlisting}
     
-    A policy element can only be deleted if there are no other elements referring to it. The match in line 3 will make the function fail if the reference count is not 0. Deleting the vertex from the digraph will also delete edges emanating from V or incident on V.
+	    A policy element can only be deleted if there are no other elements referring to it. The match in line 3 will make the function fail if the reference count is not 0. Deleting the vertex from the digraph will also delete edges emanating from V or incident on V.
 
-	\subsection{create\_arset/2}
+	\subsection{create\_arset/2 and delete\_atset/2}\label{create_ar_atset}
 	
-	This function creates a access rights set, i.e. a set with one or more access rights. It takes two arguments, the id of the set and a list with access rights and stores a representation of it in the database.
-	
-	The same ARset can used many times all over the PM, e.g. the set {r,w} or just {r} or {w} etc. is probably used in many associations. Instead of creating a new set for each occurrence, a set can be \emph{instantiated} (used) many times.  A set is defined as a tuple with the fields \lstinline|id| for the set's id, \lstinline|value| for the set's actual set of elements, a \lstinline|ref_cnt|  to keep track of the number of times the set is referred to and an \lstinline|inst_cnt| which is equal to the number of instances of the set. The set is also referred from many places and therefor reference counted. The implementation is as follows:
-	
-	\begin{lstlisting}[caption={create\_arset/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		This function creates a access rights set, i.e. a set with one or more access rights. It takes two arguments, the id of the set and a list with access rights and stores a representation of it in the database.
+		
+		The same ARset can used many times all over the PM, e.g. the set {r,w} or just {r} or {w} etc. is probably used in many associations. Instead of creating a new set for each occurrence, a set can be \emph{instantiated} (used) many times.  A set is defined as a tuple with the fields \lstinline|id| for the set's id, \lstinline|value| for the set's actual set of elements, a \lstinline|ref_cnt|  to keep track of the number of times the set is referred to and an \lstinline|inst_cnt| which is equal to the number of instances of the set. The set is also referred from many places and therefor reference counted. The implementation is as follows:
+		
+		\begin{lstlisting}[caption={create\_arset/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
 -spec create_arset(ARset :: pm:id(),
                    AR_ids :: nonempty_list(pm:id())) -> ok | no_return().
 create_arset(ARset, AR_ids) ->
   case mnesia:read(arset, ARset, read) of
     [] ->
-	    Value = sets:from_list(AR_ids),
         [begin 
            [AR] = mnesia:read(ar, AR_id, write),
            mnesia:write(AR#ar{ref_cnt = AR#ar.ref_cnt + 1})
-         end || AR_id <- sets:to_list(Value)],
-      Set = #set{id = ARset, value = Value, ref_cnt = 0, inst_cnt = 1},
+         end || AR_id <- AR_ids],
+      Set = #set{id = ARset, value = sets:from_list(AR_ids),
+                 ref_cnt = 0, inst_cnt = 1},
       mnesia:write(arset, Set, write);
     [#set{inst_cnt = N} = Set] ->
       mnesia:write(arset, Set#set{inst_cnt = N + 1}, write)
   end. \end{lstlisting}
 	
-	If a set with id \lstinline|ARset| does not exist yet (line 5), an Erlang set is created for all access rights \lstinline|AR| in the list \lstinline|AR_ids| the \lstinline|ref_cnt| is incremented because the set will reference these access rights. The set \lstinline|Value| is used as the source of the access rights instead of the original list \lstinline|AR_ids| to eliminate duplicates in the list. ARs with a \lstinline|ref_cnt| not being 0 can not be deleted. The actual set of access rights is constructed using the standard Erlang set and is being assigned to the value field. 
+		If a set with id \lstinline|ARset| does not exist yet (line 5), an Erlang set is created for all access rights \lstinline|AR| in the list \lstinline|AR_ids| the \lstinline|ref_cnt| is incremented because the set will reference these access rights. The list AR\_ids must not contain duplicates or the ref\_cnts will not be correct anymore. ARs with a \lstinline|ref_cnt| not being 0 can not be deleted. The actual set of access rights is constructed using the standard Erlang set and is being assigned to the value field. 
+		
+		If the set does already exist with the id \lstinline|ARset|, its instance count is incremented instead.
+		
+		The two functions delete\_arset and delete\_atset are very much identical except for the database tables used. One might consider to generalize the creation of sets and merge the two functions.
+		
+	\subsection{allocate\_id(Values)}
 	
-	If the set does already exist with the id \lstinline|ARset|, its instance count is incremented instead.
+		The function \lstinline|allocate_id(Values)| is used to create a id based on a list of values. This function is used for example in the two functions described in \ref{create_ar_atset}. For example, to create an ARset with the two access rights \lstinline|r| and \lstinline|w|, one would use the function call \lstinline|allocate_id([r, w])| to create the new id.  Subsequent calls to the function with the same list will yield the same id. The order of the elements in the list is not important and duplicates are removed, i.e. \lstinline|[r, w]| is the same as \lstinline|[w, r]| or even \lstinline|[r, r, w, w, w]|.
+		
+	\subsection{create\_assign/3}
+	
+		This functions creates an assignment both in the digraph and in the database. Its implementation is the following:
+		
+		\begin{lstlisting}[caption={create\_assign/3}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+-spec create_assign(G :: digraph:graph(), X :: pm:id(), Y :: pm:id()) -> ok | no_return().
+create_assign(G, X, Y) ->
+  [#pe{vertex = Vx} = PEX] = mnesia:read(pe, X, write),
+  [#pe{vertex = Vy} = PEY] = mnesia:read(pe, Y, write),
+  case digraph:add_edge(G, Vx, Vy, Y) of
+    {error, Reason} ->
+      erlang:error(Reason);
+    Edge ->
+      mnesia:write(PEX#pe{ref_cnt = PEX#pe.ref_cnt + 1}),
+      mnesia:write(PEY#pe{ref_cnt = PEY#pe.ref_cnt + 1}),
+      mnesia:write(#assign{a = X, b = Y, edge = Edge})
+  end.\end{lstlisting}
+  
+		  The arguments X and Y are the id's of the policy elements involved in the assignment. The function starts with fetching the two PEs belonging to X and Y, which in case X and Y are not existing id's will result in a failure that will abort the transaction. Next, an edge is added to the digraph between the two vertices belonging to the two PEs. Both the reference count of the two PEs are incremented and the ASSIGN set is updated in the database.
+		  
+	\subsection{create\_assoc/3}
+	
+		The \lstinline|create_assoc/3| function adds an association as a tuple \lstinline|(ua, ars, at)| to the database. An association is not part of the digraph.
+		
+		The first element of the tuple must be an user attribute, the second must be an access right set and the third must be an object\footnote{Since an object by definition is part of the set OA, objects are allowed.}, object attribute or user attribute. You will not find any guards for these conditions in the function since the calling function does guaranty that the attribute types are correct.
 	
 	\section{Sessions}
 	

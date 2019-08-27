@@ -19,6 +19,9 @@
 \BOOKMARK [1][-]{section.3.2}{Policy Information Point}{chapter.3}% 19
 \BOOKMARK [2][-]{subsection.3.2.1}{create\137x\137in\137y}{section.3.2}% 20
 \BOOKMARK [2][-]{subsection.3.2.2}{delete\137u/2 and similar functions}{section.3.2}% 21
-\BOOKMARK [2][-]{subsection.3.2.3}{create\137arset/2}{section.3.2}% 22
-\BOOKMARK [1][-]{section.3.3}{Sessions}{chapter.3}% 23
-\BOOKMARK [0][-]{chapter.4}{Notes}{}% 24
+\BOOKMARK [2][-]{subsection.3.2.3}{create\137arset/2 and delete\137atset/2}{section.3.2}% 22
+\BOOKMARK [2][-]{subsection.3.2.4}{allocate\137id\(Values\)}{section.3.2}% 23
+\BOOKMARK [2][-]{subsection.3.2.5}{create\137assign/3}{section.3.2}% 24
+\BOOKMARK [2][-]{subsection.3.2.6}{create\137assoc/3}{section.3.2}% 25
+\BOOKMARK [1][-]{section.3.3}{Sessions}{chapter.3}% 26
+\BOOKMARK [0][-]{chapter.4}{Notes}{}% 27

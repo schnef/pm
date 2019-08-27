@@ -192,27 +192,29 @@ create_ar(AR) ->
     mnesia:write(AR#ar{ref_cnt = 0}).
 
 -spec create_arset(ARset :: pm:id(), AR_ids :: nonempty_list(pm:id())) -> ok | no_return().
+%% The calling function does take care the AR_ids are sorted without duplicates. 
 create_arset(ARset, AR_ids) ->
     case mnesia:read(arset, ARset, read) of
 	[] ->
-	    Value = sets:from_list(AR_ids),
 	    [begin 
 		 [AR] = mnesia:read(ar, AR_id, write),
 		 mnesia:write(AR#ar{ref_cnt = AR#ar.ref_cnt + 1})
-	     end || AR_id <- sets:to_list(Value)],
-	    Set = #set{id = ARset, value = Value, ref_cnt = 0, inst_cnt = 1},
+	     end || AR_id <- AR_ids],
+	    Set = #set{id = ARset, value = sets:from_list(AR_ids), ref_cnt = 0, inst_cnt = 1},
 	    mnesia:write(arset, Set, write);
 	[#set{inst_cnt = N} = Set] ->
 	    mnesia:write(arset, Set#set{inst_cnt = N + 1}, write)
     end.
     
 -spec create_atiset(ATIset :: pm:id(), ATIs :: list(pm:at())) -> ok | no_return().
-%% @doc add a set of inclusion policy elements denoted by a referent attribute to the representation
+%% @doc add a set of inclusion policy elements denoted by a referent
+%% attribute to the representation
 create_atiset(ATIset, ATI_ids) ->
     create_atset(ATIset, ATI_ids, atiset).
 
 -spec create_ateset(ATEset :: pm:id(), ATE_ids :: list(pm:at())) -> ok | no_return().
-%% @doc add a set of exclusion policy elements denoted by a referent attribute to the representation
+%% @doc add a set of exclusion policy elements denoted by a referent
+%% attribute to the representation
 create_ateset(ATEset, ATE_ids) ->
     create_atset(ATEset, ATE_ids, ateset).
 
@@ -221,12 +223,11 @@ create_ateset(ATEset, ATE_ids) ->
 create_atset(ATset, AT_ids, ATset_table) ->
     case mnesia:read(ATset_table, ATset, read) of
 	[] ->
-	    Value = sets:from_list(AT_ids),
 	    [begin 
 		 [PE] = mnesia:read(pe, AT_id, write),
 		 mnesia:write(PE#pe{ref_cnt = PE#pe.ref_cnt + 1})
-	     end || AT_id <- sets:to_list(Value)],
-	    Set = #set{id = ATset, value = Value, ref_cnt = 0, inst_cnt = 1},
+	     end || AT_id <- AT_ids],
+	    Set = #set{id = ATset, value = sets:from_list(AT_ids), ref_cnt = 0, inst_cnt = 1},
 	    mnesia:write(ATset_table, Set, write);
 	[#set{inst_cnt = N} = Set] ->
 	    mnesia:write(ATset_table, Set#set{inst_cnt = N + 1}, write)
@@ -260,7 +261,7 @@ allocate_id() ->
 %% TODO: we use a 32 bit hash (maybe 27 bits) to calculate a key based
 %% on the value(s) passed to the allocate_id function. Is the range
 %% sufficient? Use hash functions from the crypto lib?
-allocate_id(Values)  when is_list(Values) ->
+allocate_id(Values) when is_list(Values) ->
     %% TODO: can range be set to its default of 0 .. 2^27 - 1? Once
     %% set, you can _NOT_ change the range anymore since the result of
     %% the hash differs!

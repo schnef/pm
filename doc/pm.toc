@@ -19,6 +19,9 @@
 \contentsline {section}{\numberline {3.2}Policy Information Point}{27}{section.3.2}
 \contentsline {subsection}{\numberline {3.2.1}create\_x\_in\_y}{29}{subsection.3.2.1}
 \contentsline {subsection}{\numberline {3.2.2}delete\_u/2 and similar functions}{30}{subsection.3.2.2}
-\contentsline {subsection}{\numberline {3.2.3}create\_arset/2}{31}{subsection.3.2.3}
-\contentsline {section}{\numberline {3.3}Sessions}{31}{section.3.3}
-\contentsline {chapter}{\numberline {4}Notes}{33}{chapter.4}
+\contentsline {subsection}{\numberline {3.2.3}create\_arset/2 and delete\_atset/2}{31}{subsection.3.2.3}
+\contentsline {subsection}{\numberline {3.2.4}allocate\_id(Values)}{32}{subsection.3.2.4}
+\contentsline {subsection}{\numberline {3.2.5}create\_assign/3}{32}{subsection.3.2.5}
+\contentsline {subsection}{\numberline {3.2.6}create\_assoc/3}{32}{subsection.3.2.6}
+\contentsline {section}{\numberline {3.3}Sessions}{33}{section.3.3}
+\contentsline {chapter}{\numberline {4}Notes}{35}{chapter.4}

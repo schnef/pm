@@ -253,14 +253,12 @@ in_any(G, [AT | Rest], Vpe) ->
 in_all(G, Set, Vpe) when not is_list(Set) ->
     in_all(G, sets:to_list(Set), Vpe);
 in_all(_G, [], _Vpe) ->
-    false;
+    true;
 in_all(G, [AT | Rest], Vpe) ->
     [#pe{vertex = Vat}] = mnesia:dirty_read(pe, AT),
     case digraph:get_path(G, Vpe, Vat) of
 	false ->
 	    false;
-	_ when Rest =:= [] ->
-	    true;
 	_ ->
 	    in_all(G, Rest, Vpe)
     end.
