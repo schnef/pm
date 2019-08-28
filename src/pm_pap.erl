@@ -58,7 +58,9 @@
       Result :: {ok, pm:u()} | {error, Reason :: term()}.
 %% @doc create a u assigned to ua
 c_u_in_ua(#u{} = U, #ua{} = UA) ->
-    gen_server:call(?SERVER, {c_u_in_ua, U, UA}).
+    gen_server:call(?SERVER, {c_u_in_ua, U, UA});
+c_u_in_ua(U, UA) ->
+    {error, {badarg, {U, UA}}}.
 
 -spec c_ua_in_ua(UA1, UA2) -> Result when
       UA1 :: pm:ua(),
@@ -66,7 +68,10 @@ c_u_in_ua(#u{} = U, #ua{} = UA) ->
       Result :: {ok, pm:ua()} | {error, Reason :: term()}.
 %% @doc create a ua, x, assigned to ua
 c_ua_in_ua(#ua{} = UA1, #ua{} = UA2) ->
-    gen_server:call(?SERVER, {c_ua_in_ua, UA1, UA2}).
+    gen_server:call(?SERVER, {c_ua_in_ua, UA1, UA2});
+c_ua_in_ua(UA1, UA2) ->
+    {error, {badarg, {UA1, UA2}}}.
+
 
 -spec c_ua_in_pc(UA, PC) -> Result when
       UA :: pm:ua(),
@@ -74,7 +79,9 @@ c_ua_in_ua(#ua{} = UA1, #ua{} = UA2) ->
       Result :: {ok, pm:ua()} | {error, Reason :: term()}.
 %% @doc create a ua in pc
 c_ua_in_pc(#ua{} = UA, #pc{} = PC) ->
-    gen_server:call(?SERVER, {c_ua_in_pc, UA, PC}).
+    gen_server:call(?SERVER, {c_ua_in_pc, UA, PC});
+c_ua_in_pc(UA, PC) ->
+    {error, {badarg, {UA, PC}}}.
 
 -spec c_o_in_oa(O, OA) -> Result when
       O :: pm:o(),
@@ -82,7 +89,9 @@ c_ua_in_pc(#ua{} = UA, #pc{} = PC) ->
       Result :: {ok, pm:o()} | {error, Reason :: term()}.
 %% @doc create a o assigned to oa
 c_o_in_oa(#o{} = O, #oa{} = OA) ->
-    gen_server:call(?SERVER, {c_o_in_oa, O, OA}).
+    gen_server:call(?SERVER, {c_o_in_oa, O, OA});
+c_o_in_oa(O, OA) ->
+    {error, {badarg, {O, OA}}}.
 
 -spec c_oa_in_oa(OA1, OA2) -> Result when
       OA1 :: pm:oa(),
@@ -90,7 +99,9 @@ c_o_in_oa(#o{} = O, #oa{} = OA) ->
       Result :: {ok, pm:oa()} | {error, Reason :: term()}.
 %% @doc create a oa, x, assigned to oa
 c_oa_in_oa(#oa{} = OA1, #oa{} = OA2) ->
-    gen_server:call(?SERVER, {c_oa_in_oa, OA1, OA2}).
+    gen_server:call(?SERVER, {c_oa_in_oa, OA1, OA2});
+c_oa_in_oa(OA1, OA2) ->
+    {error, {badarg, {OA1, OA2}}}.
 
 -spec c_oa_in_pc(OA, PC) -> Result when
       OA :: pm:oa(),
@@ -98,14 +109,18 @@ c_oa_in_oa(#oa{} = OA1, #oa{} = OA2) ->
       Result :: {ok, pm:oa()} | {error, Reason :: term()}.
 %% @doc create a oa in pc
 c_oa_in_pc(#oa{} = OA, #pc{} = PC) ->
-    gen_server:call(?SERVER, {c_oa_in_pc, OA, PC}).
+    gen_server:call(?SERVER, {c_oa_in_pc, OA, PC});
+c_oa_in_pc(OA, PC) ->
+    {error, {badarg, {OA, PC}}}.
 
 -spec c_pc(PC) -> Result when
       PC :: pm:pc(),
       Result :: {ok, pm:pc()} | {error, Reason :: term()}.
 %% @doc create a policy class
 c_pc(#pc{} = PC) ->
-    gen_server:call(?SERVER, {c_pc, PC}).
+    gen_server:call(?SERVER, {c_pc, PC});
+c_pc(PC) ->
+    {error, {badarg, PC}}.
 
 -spec c_u_to_ua(U, UA) -> Result when
       U :: pm:u(),
@@ -113,7 +128,9 @@ c_pc(#pc{} = PC) ->
       Result :: ok | {error, Reason :: term()}.
 %% @doc create an assignment (u, ua)
 c_u_to_ua(#u{id = X}, #ua{id = Y}) ->
-    gen_server:call(?SERVER, {c_assign, X, Y}).
+    gen_server:call(?SERVER, {c_assign, X, Y});
+c_u_to_ua(U, UA) ->
+    {error, {badarg, {U, UA}}}.
 
 -spec c_ua_to_ua(UAfr, UAto) -> Result when
       UAfr :: pm:ua(),
@@ -121,7 +138,9 @@ c_u_to_ua(#u{id = X}, #ua{id = Y}) ->
       Result :: ok | {error, Reason :: term()}.
 %% @doc create an assignment (uafr, uato)
 c_ua_to_ua(#ua{id = X}, #ua{id = Y}) ->
-    gen_server:call(?SERVER, {c_assign, X, Y}).
+    gen_server:call(?SERVER, {c_assign, X, Y});
+c_ua_to_ua(UA1, UA2) ->
+    {error, {badarg, {UA1, UA2}}}.
 
 -spec c_ua_to_pc(UA, PC) -> Result when
       UA :: pm:ua(),
@@ -129,7 +148,9 @@ c_ua_to_ua(#ua{id = X}, #ua{id = Y}) ->
       Result :: ok | {error, Reason :: term()}.
 %% @doc create an assignment (ua, pc)
 c_ua_to_pc(#ua{id = X}, #pc{id = Y}) ->
-    gen_server:call(?SERVER, {c_assign, X, Y}).
+    gen_server:call(?SERVER, {c_assign, X, Y});
+c_ua_to_pc(UA, PC) ->
+    {error, {badarg, {UA, PC}}}.
 
 -spec c_o_to_oa(O, OA) -> Result when
       O :: pm:o(),
@@ -137,7 +158,9 @@ c_ua_to_pc(#ua{id = X}, #pc{id = Y}) ->
       Result :: ok | {error, Reason :: term()}.
 %% @doc create an assignment (o, oa)
 c_o_to_oa(#o{id = X}, #oa{id = Y}) ->
-    gen_server:call(?SERVER, {c_assign, X, Y}).
+    gen_server:call(?SERVER, {c_assign, X, Y});
+c_o_to_oa(O, OA) ->
+    {error, {badarg, {O, OA}}}.
 
 -spec c_oa_to_oa(OAfr, OAto) -> Result when
       OAfr :: pm:oa(),
@@ -145,7 +168,9 @@ c_o_to_oa(#o{id = X}, #oa{id = Y}) ->
       Result :: ok | {error, Reason :: term()}.
 %% @doc create an assignment (oafr, oato)
 c_oa_to_oa(#oa{id = X}, #oa{id = Y}) ->
-    gen_server:call(?SERVER, {c_assign, X, Y}).
+    gen_server:call(?SERVER, {c_assign, X, Y});
+c_oa_to_oa(OA1, OA2) ->
+    {error, {badarg, {OA1, OA2}}}.
 
 -spec c_oa_to_pc(OA, PC) -> Result when
       OA :: pm:oa(),
@@ -153,7 +178,9 @@ c_oa_to_oa(#oa{id = X}, #oa{id = Y}) ->
       Result :: ok | {error, Reason :: term()}.
 %% @doc create an assignment (oa, pc)
 c_oa_to_pc(#oa{id = X}, #pc{id = Y}) ->
-    gen_server:call(?SERVER, {c_assign, X, Y}).
+    gen_server:call(?SERVER, {c_assign, X, Y});
+c_oa_to_pc(OA, PC) ->
+    {error, {badarg, {OA, PC}}}.
 
 -spec c_assoc(UA, ARs, AT) -> Result when
       UA :: pm:ua(),
@@ -174,7 +201,9 @@ c_assoc(#ua{id = X}, ARs, Z) when ARs =/= [] ->
 	    {ok, #association{ua = X, arset = ARset, at = Z}};
 	Error ->
 	    Error
-    end.
+    end;
+c_assoc(UA, ARs, AT) ->
+    {error, {badarg, {UA, ARs, AT}}}.
 
 %% TODO: -specs should state that ATIset and ATEset should contain the
 %% same attribute types and not, for example, the ATIset containing
@@ -191,7 +220,9 @@ c_conj_uprohib(#u{id = W}, ARs, ATIs, ATEs) ->
 	    {ok, #u_deny_conj{u = W, arset = ARset, atiset = ATIset, ateset = ATEset}};
 	Error ->
 	    Error
-    end.
+    end;
+c_conj_uprohib(U, ARs, ATIs, ATEs) ->
+    {error, {badarg, {U, ARs, ATIs, ATEs}}}.
 
 -spec c_conj_pprohib(P :: pm:p(), ARs, ATIs, ATEs) -> Result when
       ARs :: nonempty_list(pm:ar()),
@@ -206,7 +237,9 @@ c_conj_pprohib(P, ARs, ATIs, ATEs) when is_pid(P) ->
 	    {ok, #p_deny_conj{p = P, arset = ARset, atiset = ATIset, ateset = ATEset}};
 	Error ->
 	    Error
-    end.
+    end;
+c_conj_pprohib(P, ARs, ATIs, ATEs) ->
+    {error, {badarg, {P, ARs, ATIs, ATEs}}}.
 
 -spec c_conj_uaprohib(UA :: pm:ua(), ARs, ATIs, ATEs) -> Result when
       ARs :: nonempty_list(pm:ar()),
@@ -220,7 +253,9 @@ c_conj_uaprohib(#ua{id = W}, ARs, ATIs, ATEs) ->
 	    {ok, #ua_deny_conj{ua = W, arset = ARset, atiset = ATIset, ateset = ATEset}};
 	Error ->
 	    Error
-    end.
+    end;
+c_conj_uaprohib(UA, ARs, ATIs, ATEs) ->
+    {error, {badarg, {UA, ARs, ATIs, ATEs}}}.
 
 -spec c_disj_uprohib(U :: pm:u(), ARs, ATIs, ATEs) -> Result when
       ARs :: nonempty_list(pm:ar()),
@@ -234,7 +269,9 @@ c_disj_uprohib(#u{id = W}, ARs, ATIs, ATEs) ->
 	    {ok, #u_deny_disj{u = W, arset = ARset, atiset = ATIset, ateset = ATEset}};
 	Error ->
 	    Error
-    end.
+    end;
+c_disj_uprohib(U, ARs, ATIs, ATEs) ->
+    {error, {badarg, {U, ARs, ATIs, ATEs}}}.
 
 -spec c_disj_pprohib(P :: pm:p(), ARs, ATIs, ATEs) -> Result when
       ARs :: nonempty_list(pm:ar()),
@@ -249,7 +286,9 @@ c_disj_pprohib(P, ARs, ATIs, ATEs) when is_pid(P) ->
 	    {ok, #p_deny_disj{p = P, arset = ARset, atiset = ATIset, ateset = ATEset}};
 	Error ->
 	    Error
-    end.
+    end;
+c_disj_pprohib(P, ARs, ATIs, ATEs) ->
+    {error, {badarg, {P, ARs, ATIs, ATEs}}}.
 
 -spec c_disj_uaprohib(UA :: pm:ua(), ARs, ATIs, ATEs) -> Result when
       ARs :: nonempty_list(pm:ar()),
@@ -263,7 +302,9 @@ c_disj_uaprohib(#ua{id = W}, ARs, ATIs, ATEs) ->
 	    {ok, #ua_deny_disj{ua = W, arset = ARset, atiset = ATIset, ateset = ATEset}};
 	Error ->
 	    Error
-    end.
+    end;
+c_disj_uaprohib(UA, ARs, ATIs, ATEs) ->
+    {error, {badarg, {UA, ARs, ATIs, ATEs}}}.
 
 %% @private
 c_prohib(_W, [], _ATIs, _ATEs, _Prohib) ->
@@ -298,7 +339,9 @@ c_prohib(W, AR_ids, ATIs, ATEs, Prohib) ->
 %% @doc function that evaluates the correctness of a logical expression of an event pattern
 eval_pattern(P, Patterns) when is_pid(P), Patterns =/= [] ->
     Pattern_ids = [(fun(#pattern{id = P_id}) -> P_id end)(Pattern) || Pattern <- Patterns],
-    gen_server:call(?SERVER, {eval_pattern, P, Pattern_ids}).
+    gen_server:call(?SERVER, {eval_pattern, P, Pattern_ids});
+eval_pattern(P, Pattern) ->
+    {error, {badarg, {P, Pattern}}}.
 
 -spec eval_response(P, Response) -> Result when
       P :: pid(),
@@ -307,7 +350,9 @@ eval_pattern(P, Patterns) when is_pid(P), Patterns =/= [] ->
 %% @doc function that evaluates of the correctness of the syntax of an obligation’s response
 eval_response(P, Responses) when is_pid(P), Responses =/= [] ->
     Response_ids = [(fun(#response{id = R_id}) -> R_id end)(Response) || Response <- Responses],
-    gen_server:call(?SERVER, {eval_response, P, Response_ids}).
+    gen_server:call(?SERVER, {eval_response, P, Response_ids});
+eval_response(P, Responses) ->
+    {error, {badarg, {P, Responses}}}.
 
 -spec c_oblig(P, Patterns, Responses) -> Result when
       P :: pid(),
@@ -323,7 +368,9 @@ c_oblig(P, Patterns, Responses) when is_pid(P), Patterns =/= [], Responses =/= [
 	    {ok, #obligation{u = U, pattern = Pattern, response = Response}};
 	Error ->
 	    Error
-    end.
+    end;
+c_oblig(P, Patterns, Responses) ->
+    {error, {badarg, {P, Patterns, Responses}}}.
 
 %% D.2 Relation Rescindment Routines
 -spec d_u_in_ua(U, UA) -> Result when
@@ -527,7 +574,9 @@ get_digraph() ->
       Result :: ok | {error, already_exists} | {error, notfound}.
 %% @doc Register process for the user.
 register_p(P, #u{id = Id}) when is_pid(P) ->
-    gen_server:call(?SERVER, {register_p, P, Id}).
+    gen_server:call(?SERVER, {register_p, P, Id});
+register_p(P, U) ->
+    {error, {badarg, {P, U}}}.
 
 -spec unregister_p(P) -> Result when
       P :: pid(),
@@ -930,7 +979,7 @@ tst_c_assoc() ->
     [?_assertMatch({ok, _}, pm_pap:c_assoc(UA, [#ar{id = 'r'}], OA)),
      ?_assertMatch({ok, _}, pm_pap:c_assoc(UA, [#ar{id = 'r'}], OA)), % TODO: bad?
      ?_assertMatch({ok, _}, pm_pap:c_assoc(UA, [#ar{id = 'w'}], O)),
-     ?_assertException(error, function_clause, pm_pap:c_assoc(U, [#ar{id = 'r'}], OA)),
+     ?_assertMatch({error, _Reason}, pm_pap:c_assoc(U, [#ar{id = 'r'}], OA)),
      ?_assertMatch({error, _Reason}, pm_pap:c_assoc(UA, [#ar{id = 'x'}], OA))].
 
 tst_c_oblig() ->
@@ -966,7 +1015,7 @@ tst_c_conj_uprohib() ->
      ?_assertMatch({ok, _}, pm_pap:c_conj_uprohib(U, ARs, [], [UA2])),
      ?_assertMatch({error, badvalue}, pm_pap:c_conj_uprohib(U, [], [OA1], [OA2])),
      ?_assertMatch({error, badvalue}, pm_pap:c_conj_uprohib(U, ARs, [], [])),
-     ?_assertError(function_clause, pm_pap:c_conj_uprohib(UA, ARs, [OA1], [OA2])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_conj_uprohib(UA, ARs, [OA1], [OA2])),
      ?_assertError(function_clause, pm_pap:c_conj_uprohib(U, ARs, [OA1], [UA2])),
      ?_assertError(function_clause, pm_pap:c_conj_uprohib(U, ARs, [UA1, OA1], [UA2])),
      ?_assertMatch({error, _}, pm_pap:c_conj_uprohib(U, [#ar{id = 'x'}], [UA1], [UA2])),
@@ -986,8 +1035,9 @@ tst_c_conj_pprohib() ->
     pm_pap:register_p(P, U),
     Q = spawn_link(fun() -> receive _ -> ok end end), % Process, unlinked to a U
     [?_assertMatch({ok, _}, pm_pap:c_conj_pprohib(P, ARs, [OA1, OA2], [O])),
-     ?_assertError(function_clause, pm_pap:c_conj_pprohib(U, ARs, [OA1, OA2], [O])),
-     ?_assertError(function_clause, pm_pap:c_conj_pprohib(UA, ARs, [OA1, OA2], [O])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_conj_pprohib(U, ARs, [OA1, OA2], [O])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_conj_pprohib(UA, ARs, [OA1, OA2], [O])),
+     %% A process, but not a registered one.
      ?_assertMatch({error, _}, pm_pap:c_conj_pprohib(Q, ARs, [OA1, OA2], [O]))
     ].
 
@@ -999,7 +1049,7 @@ tst_c_conj_uaprohib() ->
     {ok, OA2} = pm_pap:c_oa_in_pc(#oa{value = "an attribute"}, PC),
     ARs = [#ar{id = 'w'}],
     [?_assertMatch({ok, _}, pm_pap:c_conj_uaprohib(UA, ARs, [OA1], [OA2])),
-     ?_assertError(function_clause, pm_pap:c_conj_uaprohib(U, ARs, [OA1], [OA2]))
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_conj_uaprohib(U, ARs, [OA1], [OA2]))
     ].
 
 tst_c_disj_uprohib() ->
@@ -1023,7 +1073,7 @@ tst_c_disj_uprohib() ->
      ?_assertMatch({ok, _}, pm_pap:c_disj_uprohib(U, ARs, [], [UA2])),
      ?_assertMatch({error, badvalue}, pm_pap:c_disj_uprohib(U, [], [OA1], [OA2])),
      ?_assertMatch({error, badvalue}, pm_pap:c_disj_uprohib(U, ARs, [], [])),
-     ?_assertError(function_clause, pm_pap:c_disj_uprohib(UA, ARs, [OA1], [OA2])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_disj_uprohib(UA, ARs, [OA1], [OA2])),
      ?_assertError(function_clause, pm_pap:c_disj_uprohib(U, ARs, [OA1], [UA2])),
      ?_assertError(function_clause, pm_pap:c_disj_uprohib(U, ARs, [UA1, OA1], [UA2])),
      ?_assertMatch({error, _}, pm_pap:c_disj_uprohib(U, [#ar{id = 'x'}], [UA1], [UA2])),
@@ -1043,8 +1093,8 @@ tst_c_disj_pprohib() ->
     pm_pap:register_p(P, U),
     Q = spawn_link(fun() -> receive _ -> ok end end), % Process, unlinked to a U
     [?_assertMatch({ok, _}, pm_pap:c_disj_pprohib(P, ARs, [OA1, OA2], [O])),
-     ?_assertError(function_clause, pm_pap:c_disj_pprohib(U, ARs, [OA1, OA2], [O])),
-     ?_assertError(function_clause, pm_pap:c_disj_pprohib(UA, ARs, [OA1, OA2], [O])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_disj_pprohib(U, ARs, [OA1, OA2], [O])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_disj_pprohib(UA, ARs, [OA1, OA2], [O])),
      ?_assertMatch({error, _}, pm_pap:c_disj_pprohib(Q, ARs, [OA1, OA2], [O]))
     ].
 
@@ -1056,7 +1106,7 @@ tst_c_disj_uaprohib() ->
     {ok, OA2} = pm_pap:c_oa_in_pc(#oa{value = "an attribute"}, PC),
     ARs = [#ar{id = 'w'}],
     [?_assertMatch({ok, _}, pm_pap:c_disj_uaprohib(UA, ARs, [OA1], [OA2])),
-     ?_assertError(function_clause, pm_pap:c_disj_uaprohib(U, ARs, [OA1], [OA2]))
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_disj_uaprohib(U, ARs, [OA1], [OA2]))
     ].
 
 %% tst_eval_pattern() ->

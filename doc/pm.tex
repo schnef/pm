@@ -471,7 +471,7 @@ create_assign(G, X, Y) ->
 	
 	\emph{TBD: Verifying the administrative access rights for executing administrative routines is not yet implemented.}
 	
-	\emph{TBD: Make the error handling more consistent. Errors in the interface will cause exceptions to be raised but failures in the underlying administrative commands are returned as a tuple \lstinline|\{error, Reason\}|. Either always return \lstinline|\{error, Reason\}| or throw an exception.}
+	\emph{TBD: Make the error handling even more consistent. On failure of a administrative routine or if the interface finds a problem, an \lstinline|\{error, Reason\}| is returned, with Reason either being \lstinline|\{badarg, [Args]\}| or \lstinline|badvalue|. But, in case an argument contains a list and the list is being checked for containing a particular type of record, an exception is raised instead of returning an badvalue error}. 
 	
 	An example of a typical implementation of a administrative routine in \lstinline|pm_pap|:
 	
