@@ -79,30 +79,19 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-privilege(G, U, ARl, #ua{id = UA_id}) ->
-    case mnesia:dirty_read(pe, UA_id) of
-	[#pe{vertex = Vua}] ->
-	    privilege(G, U, ARl, Vua);
-	[] ->
-	    {error, not_found}
-    end;
-privilege(G, U, ARl, #o{id = O_id}) ->
-    case mnesia:dirty_read(pe, O_id) of
-	[#pe{vertex = Vo}] ->
-	    privilege(G, U, ARl, Vo);
-	[] ->
-	    {error, not_found}
-    end;
-privilege(G, U, ARl, #oa{id = OA_id}) ->
-    case mnesia:dirty_read(pe, OA_id) of
-	[#pe{vertex = Voa}] ->
-	    privilege(G, U, ARl, Voa);
-	[] ->
-	    {error, not_found}
-    end;
-privilege(G, #u{id = U_id}, ARl, Vpe) ->
-    case mnesia:dirty_read(pe, U_id) of
-	[#pe{vertex = Vu}] ->
+%% PRIVILEGE ⊆ U × AR × (PE\PC)
+%% TODO: can a privilege u-ar-u exist? (PE\PC) seems to imply it does.
+privilege(G, U, ARl, #u{id = Id}) ->
+    privilege(G, U, ARl, Id);
+privilege(G, U, ARl, #ua{id = Id}) ->
+    privilege(G, U, ARl, Id);
+privilege(G, U, ARl, #o{id = Id}) ->
+    privilege(G, U, ARl, Id);
+privilege(G, U, ARl, #oa{id = Id}) ->
+    privilege(G, U, ARl, Id);
+privilege(G, #u{id = U_id}, ARl, PE_id) ->
+    case {mnesia:dirty_read(pe, U_id), mnesia:dirty_read(pe, PE_id)} of
+	{[#pe{vertex = Vu}], [#pe{vertex = Vpe}]} ->
 	    ARs = sets:from_list([AR_id || #ar{id = AR_id} <- ARl]),
 	    U_deny_disj = mnesia:dirty_read(u_deny_disj, U_id),
 	    U_deny_conj = mnesia:dirty_read(u_deny_conj, U_id),
@@ -112,7 +101,7 @@ privilege(G, #u{id = U_id}, ARl, Vpe) ->
 		false ->
 		    privilege(G, digraph:out_edges(G, Vu), ARs, Vpe, [], [])
 	    end;
-	[] ->
+	_ ->
 	    {error, not_found}
     end.
 

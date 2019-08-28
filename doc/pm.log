@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2018.9.23)  28 AUG 2019 12:10
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2018.9.23)  28 AUG 2019 13:02
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1247,21 +1247,21 @@ Overfull \hbox (29.37866pt too wide) in paragraph at lines 542--542
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
-(./pm.bbl [37] [38
+[37] (./pm.bbl [38]) [39
 
-]) [39]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 558.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 558.
+]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 561.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 561.
  (./pm.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 558.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 558.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 561.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 561.
 Package rerunfilecheck Info: File `pm.out' has not changed.
 (rerunfilecheck)             Checksum: 80038924920547EC96A7D49F785CF20C;1987.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 558.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 561.
  ) 
 Here is how much of TeX's memory you used:
- 20747 strings out of 494271
- 397665 string characters out of 6161373
+ 20748 strings out of 494271
+ 397671 string characters out of 6161373
  516612 words of memory out of 5000000
  23505 multiletter control sequences out of 15000+600000
  16125 words of font info for 62 fonts, out of 8000000 for 9000
@@ -1284,10 +1284,10 @@ are/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/te
 xlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/t
 exmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/share/texlive/texmf-d
 ist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on pm.pdf (39 pages, 387371 bytes).
+Output written on pm.pdf (39 pages, 387825 bytes).
 PDF statistics:
- 637 PDF objects out of 1000 (max. 8388607)
- 560 compressed objects within 6 object streams
- 217 named destinations out of 1000 (max. 500000)
+ 639 PDF objects out of 1000 (max. 8388607)
+ 562 compressed objects within 6 object streams
+ 218 named destinations out of 1000 (max. 500000)
  267 words of extra memory for PDF output out of 10000 (max. 10000000)
 

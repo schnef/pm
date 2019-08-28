@@ -148,8 +148,7 @@
 		
 		Within the context of an association, (ua, ars, at), the third term, attribute at, is treated as a referent for the policy elements within the section of the policy element diagram rooted at the attribute, as well as itself. Similarly, the first term, attribute ua, is treated as a referent for the users and user attributes within the section of the policy element diagram rooted at ua. Although a referent potentially represents many policy elements and relationships, an access right may be pertinent to only a subset of the policy elements that are represented by the referent. That is, an access right might be relevant for one or more of the policy elements a referent attribute contains, or the access right might have relevance only to the attribute itself—it depends entirely on the access right. For example, an association involving r and w access rights on an object attribute are relevant for the objects contained by the attribute, but not for the attribute or contained attributes.
 		
-		Although not mandatory, as a rule of practice, specifying associations that involve resource
-		access rights separately from associations that involve administrative access rights is advised. One reason for segregating associations this way is that a different perspective applies to each type. Resource associations do not authorize changes to policy and are directed mainly at the actions of ordinary users, while administrative associations are more complex, since they allow policy alterations to occur, and are directed mainly at policy authorities. Another difference relates to access requests: each resource operation is synonymous with and authorizable via a single resource access right (e.g., a “read” operation requires an “r” access right), authorization for an administrative operation, however, often requires possession of multiple administrative access rights.
+		Although not mandatory, as a rule of practice, specifying associations that involve resource access rights separately from associations that involve administrative access rights is advised. One reason for segregating associations this way is that a different perspective applies to each type. Resource associations do not authorize changes to policy and are directed mainly at the actions of ordinary users, while administrative associations are more complex, since they allow policy alterations to occur, and are directed mainly at policy authorities. Another difference relates to access requests: each resource operation is synonymous with and authorizable via a single resource access right (e.g., a “read” operation requires an “r” access right), authorization for an administrative operation, however, often requires possession of multiple administrative access rights.
 	
 	\subsection{Containment and Attribute Properties}
 	
@@ -549,6 +548,9 @@ ATE_ids = [Id || #ua{id = Id}) <- ATEs]\end{lstlisting}
 		 but the first form not only extracts the Id from the record but also checks that each of the elements in the list ATEs is indeed a \lstinline|#ua{}| record. The second form will silently ignore records of a different type.
 		 
 		 \item For \lstinline|pm_pip:allocate_id/1| the \lstinline|erlang:phash2/2| function is used on the sorted list of valeus with duplicates removed. According to the documentation the \lstinline|erlang:phash2/2| will give the same result on the same term for every version and implementation of Erlang. Is this also true if the implementation of the list is changed?
+		 
+		 \item What is the proper way to handle error conditions. When to return an {error, Reason} tuple and when to raise an exception? A good rule of thumb is to use
+		 exceptions for errors that are truly exceptional.  See \href{http://erlang.org/pipermail/erlang-questions/2005-August/016545.html}{this post}.
 
 	\end{enumerate}
 	
