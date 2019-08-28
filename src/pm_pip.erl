@@ -18,7 +18,8 @@
 	 create_p/3, delete_p/2, 
 	 create_pumapping/3, create_assign/3, create_assoc/3, create_prohib/5, create_oblig/3,
 	 delete_pumapping/3, delete_assign/3, delete_assoc/3, delete_prohib/5, delete_oblig/3,
-	 process_user/2
+	 process_user/2,
+	 transaction/1
 	]).
 
 %%%===================================================================
@@ -484,6 +485,14 @@ process_user(P, PU) ->
 	    false
     end.
 
+transaction(Fun) ->
+    case mnesia:transaction(Fun) of
+	{atomic, Result} ->
+	    Result;
+	{aborted, Reason} ->
+	    {error, Reason}
+    end.
+    
 %%%===================================================================
 %%% Tests
 %%%===================================================================

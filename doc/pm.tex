@@ -24,8 +24,9 @@
 	%% instellingen voor het maken van programma listings
 	\lstset{
 		language=erlang,
-		basicstyle=\small\ttfamily,
-		breaklines=true,                 % sets automatic line breaking
+%%		basicstyle=\small\ttfamily,
+		basicstyle=\footnotesize\ttfamily,
+		breaklines=false,                % sets automatic line breaking
 		captionpos=b,                    % sets the caption-position to bottom
 		keepspaces=true,                 % keeps spaces in text
 		tabsize=4
@@ -299,6 +300,8 @@ Rtnname(x1 : type1, x2 : type2, ..., xk : typek)
 		
 	\end{description}
 
+	In the following sections, for some of the functions implemented the actual program code is shown but not for all functions. The code shown is for functions which may not be very obvious or which show a typical implementation pattern used. If you understand the code snippets shown, the rest of the code should be no problem to read.
+
 	\section{Handling failures}
 	
 	The PAP makes changes to the PIP using a set of routines based on the PIP's command set. The routines are implemented as transactions. The PIP manipulates the pm's digraph and the database. If a PAP routine fails, the database is rolled-back to the previous state, i.e. the state before the routine was executed, but the digraph can be in an inconsistent state. On failure of a PAP routine, the digraph MUST be rebuild.
@@ -343,7 +346,7 @@ c_u_in_ua(#u{} = U, #ua{id = Y}) ->
 	
 		The \lstinline|create_x_in_y(G, X, Y)| functions takes a digraph G and adds element X to element Y.
 		
-		\begin{lstlisting}[caption={create\_x\_in\_y/3}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		\begin{lstlisting}[caption={create\_x\_in\_y/3} numbers=left]
 -spec create_x_in_y(G :: digraph:graph(),
                     X :: pm:id(),
                     Y :: pm:id()) ->
@@ -381,7 +384,7 @@ create_x_in_y(G, X, Y) ->
 	
 		The functions for deleting a user, user attribute, object or object attribute all look very similar:
 		
-		\begin{lstlisting}[caption={delete\_u/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		\begin{lstlisting}[caption={delete\_u/2}, numbers=left]
 -spec delete_u(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
 delete_u(G, X) ->
     [#u{}] = mnesia:read(u, X, write),
@@ -390,7 +393,7 @@ delete_u(G, X) ->
 	
 		Each of these functions start by fetching the record from the database and matching it to its record type. If the policy element does not exist, this will raise an error which will abort the enclosing transaction. Next, the digraph is updated and the element is actually removed from the database.
 		
-		\begin{lstlisting}[caption={delete\_x/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		\begin{lstlisting}[caption={delete\_x/2}, numbers=left]
 delete_x(G, X) ->
     %% ref_cnt must be zero for this action!  
     [#pe{vertex = V, ref_cnt = 0} = PE] = mnesia:read(pe, X, write),
@@ -405,7 +408,7 @@ delete_x(G, X) ->
 		
 		The same ARset can used many times all over the PM, e.g. the set {r,w} or just {r} or {w} etc. is probably used in many associations. Instead of creating a new set for each occurrence, a set can be \emph{instantiated} (used) many times.  A set is defined as a tuple with the fields \lstinline|id| for the set's id, \lstinline|value| for the set's actual set of elements, a \lstinline|ref_cnt|  to keep track of the number of times the set is referred to and an \lstinline|inst_cnt| which is equal to the number of instances of the set. The set is also referred from many places and therefor reference counted. The implementation is as follows:
 		
-		\begin{lstlisting}[caption={create\_arset/2}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		\begin{lstlisting}[caption={create\_arset/2}, numbers=left]
 -spec create_arset(ARset :: pm:id(),
                    AR_ids :: nonempty_list(pm:id())) -> ok | no_return().
 create_arset(ARset, AR_ids) ->
@@ -430,13 +433,13 @@ create_arset(ARset, AR_ids) ->
 		
 	\subsection{allocate\_id(Values)}
 	
-		The function \lstinline|allocate_id(Values)| is used to create a id based on a list of values. This function is used for example in the two functions described in \ref{create_ar_atset}. For example, to create an ARset with the two access rights \lstinline|r| and \lstinline|w|, one would use the function call \lstinline|allocate_id([r, w])| to create the new id. Subsequent calls to the function with the same list will yield the same id. NB: order of the lists elements doesn't make a difference for the generated id, i.e. \lstinline|[a, b]| is the same as \lstinline|[b, a]|.
+		The function \lstinline|allocate_id(Values)| is used to create a id based on a list of values. This function is used for example in the two functions described in \ref{create_ar_atset}. For example, to create an ARset with the two access rights \lstinline|r| and \lstinline|w|, one would use the function call \lstinline|allocate_id([r, w])| to create the new id. Subsequent calls to the function with the same list will yield the same id. NB: order of the lists elements and / or duplicates don't make a difference for the generated id, i.e. \lstinline|[a, b]| is the same as \lstinline|[b, a]| or \lstinline|[a, b, a]| because this function is intended to generate the same id for the same set of elements and in sets order is not important and duplicates are not allowed.
 		
 	\subsection{create\_assign/3}
 	
 		This functions creates an assignment both in the digraph and in the database. Its implementation is the following:
 		
-		\begin{lstlisting}[caption={create\_assign/3}, basicstyle=\footnotesize, breaklines=false, numbers=left]
+		\begin{lstlisting}[caption={create\_assign/3}, numbers=left]
 -spec create_assign(G :: digraph:graph(), X :: pm:id(), Y :: pm:id()) -> ok | no_return().
 create_assign(G, X, Y) ->
   [#pe{vertex = Vx} = PEX] = mnesia:read(pe, X, write),
@@ -450,7 +453,7 @@ create_assign(G, X, Y) ->
       mnesia:write(#assign{a = X, b = Y, edge = Edge})
   end.\end{lstlisting}
   
-		  The arguments X and Y are the id's of the policy elements involved in the assignment. The function starts with fetching the two PEs belonging to X and Y, which in case X and Y are not existing id's will result in a failure that will abort the transaction. Next, an edge is added to the digraph between the two vertices belonging to the two PEs. Both the reference count of the two PEs are incremented and the ASSIGN set is updated in the database.
+		The arguments X and Y are the id's of the policy elements involved in the assignment. The function starts with fetching the two PEs belonging to X and Y, which in case X and Y are not existing id's will result in a failure that will abort the transaction. Next, an edge is added to the digraph between the two vertices belonging to the two PEs. Both the reference count of the two PEs are incremented and the ASSIGN set is updated in the database.
 		  
 	\subsection{create\_assoc/3}
 	
@@ -458,6 +461,67 @@ create_assign(G, X, Y) ->
 		
 		The first element of the tuple must be an user attribute, the second must be an access right set and the third must be an object\footnote{Since an object by definition is part of the set OA, objects are allowed.}, object attribute or user attribute. You will not find any guards for these conditions in the function since the calling function does guaranty that the attribute types are correct.
 	
+	\section{Policy Administration Point}
+	
+	The PAP implements the Administrative Routines as defined in the specs. An administrative routine consists mainly of a parameterized interface and a sequence of administrative command invocations. Administrative routines build upon administrative commands to define the protection capabilities of the PM model. The body of an administrative routine is executed as an atomic transaction—an error or lack of capabilities that causes any of the constituent commands to fail execution causes the entire routine to fail, producing the same effect as though none of the commands were ever executed.
+	
+	Administrative routines are executed as transactions on the database which guaranties the consistency of the data stored, but the digraph used is \emph{not} implemented as a transactional store. The digraph must therefor be rebuild on a failure!
+	
+	The PAP is implemented as a server in the module \lstinline|pm_pap|. To implement the administrative routines, there is no need to use a server pattern but it does allow some extra administrative control (blocking, accounting etc.) and prohibits administrative clients to directly execute administrative routines.  NB: \emph{the implementation of the administrative routines may change in the future from calling the PAP server to simple function calls.}
+	
+	\emph{TBD: Verifying the administrative access rights for executing administrative routines is not yet implemented.}
+	
+	\emph{TBD: Make the error handling more consistent. Errors in the interface will cause exceptions to be raised but failures in the underlying administrative commands are returned as a tuple \lstinline|\{error, Reason\}|. Either always return \lstinline|\{error, Reason\}| or throw an exception.}
+	
+	An example of a typical implementation of a administrative routine in \lstinline|pm_pap|:
+	
+	\begin{lstlisting}[caption={c\_u\_in\_ua/2 interface}, numbers=left]
+-spec c_u_in_ua(U, UA) -> Result when
+	U :: pm:u(),
+	UA :: pm:ua(),
+	Result :: {ok, pm:u()} | {error, Reason :: term()}.
+%% @doc create a u assigned to ua
+c_u_in_ua(#u{} = U, #ua{} = UA) ->
+	gen_server:call(?SERVER, {c_u_in_ua, U, UA}).\end{lstlisting}
+
+	The interface matches the parameters and/or uses guards to check for correct argument types and values. This is done in the process making the call so any errors due to incorect arguments are raised in the calling process. The administrative routine is implemented as a call in the server:
+	
+	\begin{lstlisting}[caption={c\_u\_in\_ua/2 administrative command invocations}, numbers=left]
+handle_call({c_u_in_ua, U, UA}, _From, #state{g = G} = State) ->
+	Reply = transaction(fun() ->
+							Id = pm_pip:allocate_id(),
+							pm_pip:create_u_in_ua(G, U#u{id = Id}, UA)
+						end),
+	{reply, Reply, State};\end{lstlisting}
+
+	The routine is implemented as a \lstinline|fun()| which  will perform one or more administrative commands in the PIP and which is executed as a transaction. The digraph \lstinline|G| the routine acts on is kept in the PAP's state.
+	In this example, the call to \lstinline|pm_pip:create_ua_in_ua/3| will return the tuple \lstinline|{ok, U}| with U being the user record as it was passed in to the routine with the new Id added to it and the user record being stored in the database. This way, a user record can contain whatever data is needed in the application and it being stored properly in the database, with only the id under control of the PM.
+	
+	Another, more complicated, example of an interface is the one for creating an association:
+	
+	\begin{lstlisting}[caption={c\_assoc/3 administrative routine interface}, numbers=left]
+-spec c_assoc(UA, ARs, AT) -> Result when
+	UA :: pm:ua(),
+	ARs :: nonempty_list(pm:ar()),
+	AT :: pm:ua() | pm:o() | pm:oa(),
+	Result :: ok | {error, Reason :: term()}.
+%% @doc create an association (ua, ars, at)
+c_assoc(UA, ARs, #ua{id = Z}) ->
+	c_assoc(UA, ARs, Z);
+c_assoc(UA, ARs, #o{id = Z}) ->
+	c_assoc(UA, ARs, Z);
+c_assoc(UA, ARs, #oa{id = Z}) ->
+	c_assoc(UA, ARs, Z);
+c_assoc(#ua{id = X}, ARs, Z) when ARs =/= [] ->
+	AR_ids = [(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs],
+	case gen_server:call(?SERVER, {c_assoc, X, AR_ids, Z}) of
+		{ok, ARset} ->
+			{ok, #association{ua = X, arset = ARset, at = Z}};
+		Error ->
+			Error
+	end.\end{lstlisting}
+	
+		
 	\section{Sessions}
 	
 	\chapter{Notes}
@@ -474,15 +538,17 @@ create_assign(G, X, Y) ->
 		
 		\item The following list comprehension may seem a little complicated:
 
-		\begin{lstlisting}[basicstyle=\footnotesize, breaklines=false]
+		\begin{lstlisting}[basicstyle=\footnotesize]
 ATE_ids = [(fun(#ua{id = AT_id}) -> AT_id end)(AT) || AT <- ATEs]\end{lstlisting}
 
 		 and one might think it can be replaced by something like:
 
-		\begin{lstlisting}[basicstyle=\footnotesize, breaklines=false]
+		\begin{lstlisting}[basicstyle=\footnotesize]
 ATE_ids = [Id || #ua{id = Id}) <- ATEs]\end{lstlisting}
 
-		 but the first form not only extracts the Id from the record but also checks that each of the elements in the list ATEs is indeed a \lstinline|#uaP{}| record. The second form will silently ignore records of a different type.
+		 but the first form not only extracts the Id from the record but also checks that each of the elements in the list ATEs is indeed a \lstinline|#ua{}| record. The second form will silently ignore records of a different type.
+		 
+		 \item For \lstinline|pm_pip:allocate_id/1| the \lstinline|erlang:phash2/2| function is used on the sorted list of valeus with duplicates removed. According to the documentation the \lstinline|erlang:phash2/2| will give the same result on the same term for every version and implementation of Erlang. Is this also true if the implementation of the list is changed?
 
 	\end{enumerate}
 	

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2018.9.23)  27 AUG 2019 18:42
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016/Debian) (preloaded format=pdflatex 2018.9.23)  28 AUG 2019 11:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1059,19 +1059,19 @@ Chapter 1.
 Underfull \vbox (badness 1320) has occurred while \output is active []
 
  [10]
-LaTeX Font Info:    Try loading font information for OMS+cmr on input line 79.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 80.
 
 (/usr/share/texlive/texmf-dist/tex/latex/base/omscmr.fd
 File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
 )
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 79.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 80.
 
-<images/simplified_PE_diagram.png, id=234, 915.42pt x 602.25pt>
+<images/simplified_PE_diagram.png, id=245, 915.42pt x 602.25pt>
 File: images/simplified_PE_diagram.png Graphic file (type png)
 
 <use images/simplified_PE_diagram.png>
-Package pdftex.def Info: images/simplified_PE_diagram.png used on input line 94
+Package pdftex.def Info: images/simplified_PE_diagram.png used on input line 95
 .
 (pdftex.def)             Requested size: 312.00119pt x 205.25851pt.
 
@@ -1079,41 +1079,47 @@ Package pdftex.def Info: images/simplified_PE_diagram.png used on input line 94
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 [11] [12 <./images/simplified_PE_diagram.png>] [13] [14]
-<images/simple_authorization_graph.png, id=264, 500.87125pt x 452.69125pt>
+<images/simple_authorization_graph.png, id=275, 500.87125pt x 452.69125pt>
 File: images/simple_authorization_graph.png Graphic file (type png)
 
 <use images/simple_authorization_graph.png>
 Package pdftex.def Info: images/simple_authorization_graph.png used on input li
-ne 159.
+ne 160.
 (pdftex.def)             Requested size: 312.00119pt x 281.99881pt.
 
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 [15] [16 <./images/simple_authorization_graph.png>]
-<images/Authorization_Graph_with_Prohibition.png, id=276, 500.87125pt x 491.837
+<images/Authorization_Graph_with_Prohibition.png, id=287, 500.87125pt x 491.837
 5pt>
 File: images/Authorization_Graph_with_Prohibition.png Graphic file (type png)
  <use images/Authorization_Graph_with_Prohibition.png>
 Package pdftex.def Info: images/Authorization_Graph_with_Prohibition.png used o
-n input line 179.
+n input line 180.
 (pdftex.def)             Requested size: 312.00119pt x 306.38452pt.
  [17 <./images/Authorization_Graph_with_Prohibition.png>]
-LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 206.
- [18]
-Overfull \hbox (41.59569pt too wide) in paragraph at lines 224--225
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 207.
+
+Overfull \hbox (54.79285pt too wide) in paragraph at lines 207--208
+\OT1/cmr/m/n/12 tern and re-sponse of obli-ga-tion is some-times ex-pressed lik
+e [][][][][][][][][][][][][]. 
+ []
+
+[18]
+Overfull \hbox (41.59569pt too wide) in paragraph at lines 225--226
 []\OT1/cmr/m/n/12 There does not ex-ist a user at-tribute re-stric-tion $(\OML/
 cmm/m/it/12 ua; ar; pe\OT1/cmr/m/n/12 ) \OMS/cmsy/m/n/12 2 \OML/cmm/m/it/12 UA[
 ]RESTRICT$\OT1/cmr/m/n/12 ,
  []
 
-<images/ComputingAccessDecision.png, id=287, 963.6pt x 500.87125pt>
+<images/ComputingAccessDecision.png, id=298, 963.6pt x 500.87125pt>
 File: images/ComputingAccessDecision.png Graphic file (type png)
 
 <use images/ComputingAccessDecision.png>
 Package pdftex.def Info: images/ComputingAccessDecision.png used on input line 
-232.
+233.
 (pdftex.def)             Requested size: 312.00119pt x 162.1698pt.
 
 
@@ -1122,17 +1128,17 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 [19] [20 <./images/ComputingAccessDecision.png>]
 Chapter 2.
 
-<images/AdministrativeRoutinesCommandsAccessRequestProcessing.png, id=298, 963.
+<images/AdministrativeRoutinesCommandsAccessRequestProcessing.png, id=310, 963.
 6pt x 722.7pt>
 File: images/AdministrativeRoutinesCommandsAccessRequestProcessing.png Graphic 
 file (type png)
 
 <use images/AdministrativeRoutinesCommandsAccessRequestProcessing.png>
 Package pdftex.def Info: images/AdministrativeRoutinesCommandsAccessRequestProc
-essing.png used on input line 243.
+essing.png used on input line 244.
 (pdftex.def)             Requested size: 312.00119pt x 233.99251pt.
 
-Overfull \hbox (3.53505pt too wide) in paragraph at lines 250--251
+Overfull \hbox (3.53505pt too wide) in paragraph at lines 251--252
 []\OT1/cmr/m/n/12 describe rudi-men-tary op-er-a-tions that al-ter the
  []
 
@@ -1143,115 +1149,145 @@ Overfull \hbox (3.53505pt too wide) in paragraph at lines 250--251
 
 ]
 Chapter 3.
-<images/ArchitecturalComponentsPM.png, id=332, 664.4825pt x 612.2875pt>
+<images/ArchitecturalComponentsPM.png, id=343, 664.4825pt x 612.2875pt>
 File: images/ArchitecturalComponentsPM.png Graphic file (type png)
 
 <use images/ArchitecturalComponentsPM.png>
 Package pdftex.def Info: images/ArchitecturalComponentsPM.png used on input lin
-e 281.
+e 282.
 (pdftex.def)             Requested size: 312.00119pt x 287.49489pt.
  [25 <./images/ArchitecturalComponentsPM.png>] [26] [27]
 Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on i
-nput line 330.
-
-Underfull \vbox (badness 2961) has occurred while \output is active []
-
+nput line 333.
  [28]
-LaTeX Font Info:    Try loading font information for OML+cmr on input line 349.
+Overfull \hbox (0.59924pt too wide) in paragraph at lines 365--366
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
+] 
+ []
 
-
-(/usr/share/texlive/texmf-dist/tex/latex/base/omlcmr.fd
-File: omlcmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
-)
-LaTeX Font Info:    Font shape `OML/cmr/bx/n' in size <10> not available
-(Font)              Font shape `OML/cmm/b/it' tried instead on input line 349.
-LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 350.
-LaTeX Font Info:    Font shape `OMS/cmr/bx/n' in size <10> not available
-(Font)              Font shape `OMS/cmsy/b/n' tried instead on input line 352.
- [29]
-Overfull \hbox (36.00433pt too wide) in paragraph at lines 385--386
+[29]
+Overfull \hbox (57.29913pt too wide) in paragraph at lines 388--389
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (18.00415pt too wide) in paragraph at lines 396--397
+Overfull \hbox (38.39917pt too wide) in paragraph at lines 399--400
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
 ][][][][][] 
  []
 
 [30]
-Overfull \hbox (48.00446pt too wide) in paragraph at lines 410--411
+Overfull \hbox (69.89911pt too wide) in paragraph at lines 413--414
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
 ][][] 
  []
 
-LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <10> not available
-(Font)              Font shape `OML/cmm/m/it' tried instead on input line 417.
 
-Underfull \vbox (badness 3872) has occurred while \output is active []
-
- [31]
-Overfull \hbox (150.0055pt too wide) in paragraph at lines 440--441
+Overfull \hbox (57.29913pt too wide) in paragraph at lines 422--423
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
 ][][][][] 
  []
 
-[32] [33] [34
+[31]
+Overfull \hbox (176.9989pt too wide) in paragraph at lines 443--444
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
+][][][][] 
+ []
+
+[32]
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/it' in size <10> not available
+(Font)              Font shape `OT1/cmtt/m/it' tried instead on input line 474.
+
+ [33]
+Overfull \hbox (13.19922pt too wide) in paragraph at lines 490--491
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
+ []
+
+
+Overfull \hbox (50.99915pt too wide) in paragraph at lines 493--494
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
+ []
+
+
+Overfull \hbox (38.39917pt too wide) in paragraph at lines 516--517
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][
+][] 
+ []
+
+
+Overfull \hbox (0.59924pt too wide) in paragraph at lines 519--520
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
+ []
+
+[34] [35] [36
 
 ]
 Chapter 4.
 
-Overfull \hbox (2.71945pt too wide) in paragraph at lines 469--470
-\OT1/cmr/m/n/12 (p16)? Can this be done us-ing func-tions from the mod-ule []
+Overfull \hbox (1.78447pt too wide) in paragraph at lines 533--534
+\OT1/cmr/m/n/12 (p16)? Can this be done us-ing func-tions from the mod-ule [][]
+[]? 
  []
 
+LaTeX Font Info:    Font shape `OMS/cmr/bx/n' in size <10> not available
+(Font)              Font shape `OMS/cmsy/b/n' tried instead on input line 542.
+LaTeX Font Info:    Try loading font information for OML+cmr on input line 542.
 
-Overfull \hbox (29.37866pt too wide) in paragraph at lines 478--478
+(/usr/share/texlive/texmf-dist/tex/latex/base/omlcmr.fd
+File: omlcmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OML/cmr/bx/n' in size <10> not available
+(Font)              Font shape `OML/cmm/b/it' tried instead on input line 542.
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 542.
+LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <10> not available
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 542.
+
+Overfull \hbox (29.37866pt too wide) in paragraph at lines 542--542
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
-(./pm.bbl [35] [36
+(./pm.bbl [37] [38
 
-]) [37]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 492.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 492.
+]) [39]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 558.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 558.
  (./pm.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 492.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 492.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 558.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 558.
 Package rerunfilecheck Info: File `pm.out' has not changed.
-(rerunfilecheck)             Checksum: 538EE712482A7CF798CE0C39B48EC02A;1913.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 492.
+(rerunfilecheck)             Checksum: 80038924920547EC96A7D49F785CF20C;1987.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 558.
  ) 
 Here is how much of TeX's memory you used:
- 20676 strings out of 494271
- 396752 string characters out of 6161373
- 523337 words of memory out of 5000000
- 23475 multiletter control sequences out of 15000+600000
- 16257 words of font info for 62 fonts, out of 8000000 for 9000
+ 20744 strings out of 494271
+ 397632 string characters out of 6161373
+ 515612 words of memory out of 5000000
+ 23502 multiletter control sequences out of 15000+600000
+ 16125 words of font info for 62 fonts, out of 8000000 for 9000
  372 hyphenation exceptions out of 8191
- 55i,8n,67p,1024b,1334s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 55i,8n,67p,1024b,1851s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbsy10.pfb></u
 sr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/sha
 re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/tex
-live/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/t
-exmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-d
-ist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fon
-ts/type1/public/amsfonts/cm/cmmib10.pfb></usr/share/texlive/texmf-dist/fonts/ty
-pe1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/pub
-lic/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
-fonts/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
-m/cmr7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.p
-fb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl12.pfb></u
-sr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/sha
-re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texl
-ive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/share/texlive/te
-xmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/share/texlive/texmf-di
-st/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on pm.pdf (37 pages, 385565 bytes).
+live/texmf-dist/fonts/type1/public/amsfonts/cm/cmitt10.pfb></usr/share/texlive/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-
+dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/f
+onts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/ty
+pe1/public/amsfonts/cm/cmmib10.pfb></usr/share/texlive/texmf-dist/fonts/type1/p
+ublic/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/a
+msfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts
+/cm/cmr17.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr
+7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></
+usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl12.pfb></usr/sh
+are/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/te
+xlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/share/texlive/texmf-d
+ist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
+Output written on pm.pdf (39 pages, 386472 bytes).
 PDF statistics:
- 572 PDF objects out of 1000 (max. 8388607)
- 498 compressed objects within 5 object streams
- 177 named destinations out of 1000 (max. 500000)
- 259 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 637 PDF objects out of 1000 (max. 8388607)
+ 560 compressed objects within 6 object streams
+ 217 named destinations out of 1000 (max. 500000)
+ 267 words of extra memory for PDF output out of 10000 (max. 10000000)
 

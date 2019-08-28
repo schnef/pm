@@ -23,5 +23,6 @@
 \contentsline {subsection}{\numberline {3.2.4}allocate\_id(Values)}{32}{subsection.3.2.4}
 \contentsline {subsection}{\numberline {3.2.5}create\_assign/3}{32}{subsection.3.2.5}
 \contentsline {subsection}{\numberline {3.2.6}create\_assoc/3}{32}{subsection.3.2.6}
-\contentsline {section}{\numberline {3.3}Sessions}{33}{section.3.3}
-\contentsline {chapter}{\numberline {4}Notes}{35}{chapter.4}
+\contentsline {section}{\numberline {3.3}Policy Administration Point}{33}{section.3.3}
+\contentsline {section}{\numberline {3.4}Sessions}{35}{section.3.4}
+\contentsline {chapter}{\numberline {4}Notes}{37}{chapter.4}

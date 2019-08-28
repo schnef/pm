@@ -161,13 +161,13 @@ c_oa_to_pc(#oa{id = X}, #pc{id = Y}) ->
       AT :: pm:ua() | pm:o() | pm:oa(),
       Result :: ok | {error, Reason :: term()}.
 %% @doc create an association (ua, ars, at)
-c_assoc(#ua{id = X}, ARs, #ua{id = Z}) ->
-    c_assoc(X, ARs, Z);
-c_assoc(#ua{id = X}, ARs, #o{id = Z}) ->
-    c_assoc(X, ARs, Z);
-c_assoc(#ua{id = X}, ARs, #oa{id = Z}) ->
-    c_assoc(X, ARs, Z);
-c_assoc(X, ARs, Z) when ARs =/= [] ->
+c_assoc(UA, ARs, #ua{id = Z}) ->
+    c_assoc(UA, ARs, Z);
+c_assoc(UA, ARs, #o{id = Z}) ->
+    c_assoc(UA, ARs, Z);
+c_assoc(UA, ARs, #oa{id = Z}) ->
+    c_assoc(UA, ARs, Z);
+c_assoc(#ua{id = X}, ARs, Z) when ARs =/= [] ->
     AR_ids = [(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs],
     case gen_server:call(?SERVER, {c_assoc, X, AR_ids, Z}) of
 	{ok, ARset} ->
@@ -556,59 +556,59 @@ init([]) ->
 
 %% @private
 handle_call({c_u_in_ua, U, UA}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      Id = pm_pip:allocate_id(),
-		      pm_pip:create_u_in_ua(G, U#u{id = Id}, UA)
-	      end),
+    Reply = transaction(fun() ->
+				Id = pm_pip:allocate_id(),
+				pm_pip:create_u_in_ua(G, U#u{id = Id}, UA)
+			end),
     {reply, Reply, State};
 handle_call({c_ua_in_ua, UA1, UA2}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      Id = pm_pip:allocate_id(),
-		      pm_pip:create_ua_in_ua(G, UA1#ua{id = Id}, UA2)
-	      end),
+    Reply = transaction(fun() ->
+				Id = pm_pip:allocate_id(),
+				pm_pip:create_ua_in_ua(G, UA1#ua{id = Id}, UA2)
+			end),
     {reply, Reply, State};
 handle_call({c_ua_in_pc, UA, PC}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      Id = pm_pip:allocate_id(),
-		      pm_pip:create_ua_in_pc(G, UA#ua{id = Id}, PC)
-	      end),
+    Reply = transaction(fun() ->
+				Id = pm_pip:allocate_id(),
+				pm_pip:create_ua_in_pc(G, UA#ua{id = Id}, PC)
+			end),
     {reply, Reply, State};
 handle_call({c_o_in_oa, O, OA}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      Id = pm_pip:allocate_id(),
-		      pm_pip:create_o_in_oa(G, O#o{id = Id}, OA)
-	      end),
+    Reply = transaction(fun() ->
+				Id = pm_pip:allocate_id(),
+				pm_pip:create_o_in_oa(G, O#o{id = Id}, OA)
+			end),
     {reply, Reply, State};
 handle_call({c_oa_in_oa, OA1, OA2}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      Id = pm_pip:allocate_id(),
-		      pm_pip:create_oa_in_oa(G, OA1#oa{id = Id}, OA2)
-	      end),
+    Reply = transaction(fun() ->
+				Id = pm_pip:allocate_id(),
+				pm_pip:create_oa_in_oa(G, OA1#oa{id = Id}, OA2)
+			end),
     {reply, Reply, State};
 handle_call({c_oa_in_pc, OA, PC}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      Id = pm_pip:allocate_id(),
-		      pm_pip:create_oa_in_pc(G, OA#oa{id = Id}, PC)
-	      end),
+    Reply = transaction(fun() ->
+				Id = pm_pip:allocate_id(),
+				pm_pip:create_oa_in_pc(G, OA#oa{id = Id}, PC)
+			end),
     {reply, Reply, State};
 handle_call({c_assign, X, Y}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      pm_pip:create_assign(G, X, Y)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:create_assign(G, X, Y)
+			end),
     {reply, Reply, State};
 handle_call({c_pc, PC}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      Id = pm_pip:allocate_id(),
-		      pm_pip:create_pc(G, PC#pc{id = Id})
-	      end),
+    Reply = transaction(fun() ->
+				Id = pm_pip:allocate_id(),
+				pm_pip:create_pc(G, PC#pc{id = Id})
+			end),
     {reply, Reply, State};
 handle_call({c_assoc, X, AR_ids, Z}, _From, State) ->
-    Reply = t(fun() ->
-		      ARset = pm_pip:allocate_id(AR_ids),
-		      pm_pip:create_arset(ARset, AR_ids),
-		      pm_pip:create_assoc(X, ARset, Z),
-		      {ok, ARset}
-	      end),
+    Reply = transaction(fun() ->
+				ARset = pm_pip:allocate_id(AR_ids),
+				pm_pip:create_arset(ARset, AR_ids),
+				pm_pip:create_assoc(X, ARset, Z),
+				{ok, ARset}
+			end),
     {reply, Reply, State};
 handle_call({c_prohib, P, AR_ids, ATI_ids, ATE_ids, Prohib_table}, _From, #state{pu = PU} = State)
   when is_pid(P) ->
@@ -616,16 +616,16 @@ handle_call({c_prohib, P, AR_ids, ATI_ids, ATE_ids, Prohib_table}, _From, #state
     handle_call({c_prohib, W, AR_ids, ATI_ids, ATE_ids, Prohib_table}, _From, State);
 handle_call({c_prohib, W, AR_ids, ATI_ids, ATE_ids, Prohib_table}, _From, State) ->
     %% TODO: No checks on defining the same prohibition over and over again.
-    Reply = t(fun() ->
-		      ARset = pm_pip:allocate_id(AR_ids),
-		      pm_pip:create_arset(ARset, AR_ids),
-		      ATIset = pm_pip:allocate_id(ATI_ids),
-		      pm_pip:create_atiset(ATIset, ATI_ids),
-		      ATEset = pm_pip:allocate_id(ATE_ids),
-		      pm_pip:create_ateset(ATEset, ATE_ids),
-		      pm_pip:create_prohib(W, ARset, ATIset, ATEset, Prohib_table),
-		      {ok, {ARset, ATIset, ATEset}}
-	      end),
+    Reply = transaction(fun() ->
+				ARset = pm_pip:allocate_id(AR_ids),
+				pm_pip:create_arset(ARset, AR_ids),
+				ATIset = pm_pip:allocate_id(ATI_ids),
+				pm_pip:create_atiset(ATIset, ATI_ids),
+				ATEset = pm_pip:allocate_id(ATE_ids),
+				pm_pip:create_ateset(ATEset, ATE_ids),
+				pm_pip:create_prohib(W, ARset, ATIset, ATEset, Prohib_table),
+				{ok, {ARset, ATIset, ATEset}}
+			end),
     {reply, Reply, State};
 handle_call({eval_pattern, _P, _Patterns}, _From, State) ->
     Reply = {error, not_implemented},
@@ -634,77 +634,77 @@ handle_call({eval_response, _P, _Responses}, _From, State) ->
     Reply = {error, not_implemented},
     {reply, Reply, State};
 handle_call({c_oblig, P, Patterns, Responses}, _From, #state{pu = PU} = State) ->
-    Reply = t(fun() ->
-		      U = pm_pip:process_user(P, PU),
-		      Pattern_id = pm_pip:allocate_id(),
-		      pm_pip:create_pattern(Pattern_id, Patterns),
-		      Response_id = pm_pip:allocate_id(),
-		      pm_pip:create_response(Response_id, Responses),
-		      pm_pip:create_oblig(U, Pattern_id, Response_id),
-		      {ok, {U, Pattern_id, Response_id}}
-	      end),
+    Reply = transaction(fun() ->
+				U = pm_pip:process_user(P, PU),
+				Pattern_id = pm_pip:allocate_id(),
+				pm_pip:create_pattern(Pattern_id, Patterns),
+				Response_id = pm_pip:allocate_id(),
+				pm_pip:create_response(Response_id, Responses),
+				pm_pip:create_oblig(U, Pattern_id, Response_id),
+				{ok, {U, Pattern_id, Response_id}}
+			end),
     {reply, Reply, State};
 %% TODO: Review the test for record existing before deletion. Deleting
 %% in Mnesia always yield an 'ok' even if the record didn't exist.
 handle_call({d_u_in_ua, X, Y}, _From, #state{g = G, pu = PU} = State) ->
-    Reply = t(fun() ->
-		      false = lists:keymember(X, #process_user.u, PU),
-		      pm_pip:delete_assign(G, X, Y),
-		      pm_pip:delete_u(G, X)
-	      end),
+    Reply = transaction(fun() ->
+				false = lists:keymember(X, #process_user.u, PU),
+				pm_pip:delete_assign(G, X, Y),
+				pm_pip:delete_u(G, X)
+			end),
     {reply, Reply, State};
 handle_call({d_ua_in_y, X, Y}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      pm_pip:delete_assign(G, X, Y),
-		      pm_pip:delete_ua(G, X)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:delete_assign(G, X, Y),
+				pm_pip:delete_ua(G, X)
+			end),
     {reply, Reply, State};
 handle_call({d_o_in_oa, X, Y}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      pm_pip:delete_assign(G, X, Y),
-		      pm_pip:delete_o(G, X)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:delete_assign(G, X, Y),
+				pm_pip:delete_o(G, X)
+			end),
     {reply, Reply, State};
 handle_call({d_oa_in_y, X, Y}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      pm_pip:delete_assign(G, X, Y),
-		      pm_pip:delete_oa(G, X)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:delete_assign(G, X, Y),
+				pm_pip:delete_oa(G, X)
+			end),
     {reply, Reply, State};
 handle_call({d_assign, X, Y}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      pm_pip:delete_assign(G, X, Y)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:delete_assign(G, X, Y)
+			end),
     {reply, Reply, State};
 handle_call({d_pc, X}, _From, #state{g = G} = State) ->
-    Reply = t(fun() ->
-		      pm_pip:delete_pc(G, X)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:delete_pc(G, X)
+			end),
     {reply, Reply, State};
 handle_call({d_assoc, UA, ARset, AT}, _From, State) ->
-    Reply = t(fun() ->
-		      pm_pip:delete_assoc(UA, ARset, AT),
-		      pm_pip:delete_arset(ARset)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:delete_assoc(UA, ARset, AT),
+				pm_pip:delete_arset(ARset)
+			end),
     {reply, Reply, State};
 handle_call({d_prohib, P, ARset, ATIset, ATEset, Prohib_table}, _From, #state{pu = PU} = State)
   when is_pid(P) ->
     W = pm_pip:process_user(P, PU),
     handle_call({d_prohib, W, ARset, ATIset, ATEset, Prohib_table}, _From, State);
 handle_call({d_prohib, W, ARset, ATIset, ATEset, Prohib_table}, _From, State) ->
-    Reply = t(fun() ->
-		      pm_pip:delete_prohib(W, ARset, ATIset, ATEset, Prohib_table),
-		      pm_pip:delete_arset(ARset),
-		      pm_pip:delete_atiset(ATIset),
-		      pm_pip:delete_ateset(ATEset)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:delete_prohib(W, ARset, ATIset, ATEset, Prohib_table),
+				pm_pip:delete_arset(ARset),
+				pm_pip:delete_atiset(ATIset),
+				pm_pip:delete_ateset(ATEset)
+			end),
     {reply, Reply, State};
 handle_call({d_oblig, U, Pattern_id, Response_id}, _From, State) ->
-    Reply = t(fun() ->
-		      pm_pip:delete_oblig(U, Pattern_id, Response_id),
-		      pm_pip:delete_pattern(Pattern_id),
-		      pm_pip:delete_response(Response_id)
-	      end),
+    Reply = transaction(fun() ->
+				pm_pip:delete_oblig(U, Pattern_id, Response_id),
+				pm_pip:delete_pattern(Pattern_id),
+				pm_pip:delete_response(Response_id)
+			end),
     {reply, Reply, State};
 handle_call(get_digraph, _From, #state{g = G} = State) ->
     Reply = {ok, G},
@@ -766,13 +766,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% are not which leaves the digraph in a non-consistent state. Either
 %% the server should crash, taking the digraph with it, or we should
 %% think about a rollback mechanism for the digraph.
-t(Fun) ->
-    case mnesia:transaction(Fun) of
-	{atomic, Result} ->
-	    Result;
-	{aborted, Reason} ->
-	    {error, Reason}
-    end.
+transaction(Fun) ->
+    pm_pip:transaction(Fun).
 
 %% %%%===================================================================
 %% %%% Tests
@@ -935,7 +930,7 @@ tst_c_assoc() ->
     [?_assertMatch({ok, _}, pm_pap:c_assoc(UA, [#ar{id = 'r'}], OA)),
      ?_assertMatch({ok, _}, pm_pap:c_assoc(UA, [#ar{id = 'r'}], OA)), % TODO: bad?
      ?_assertMatch({ok, _}, pm_pap:c_assoc(UA, [#ar{id = 'w'}], O)),
-     ?_assertMatch({error, _Reason}, pm_pap:c_assoc(U, [#ar{id = 'r'}], OA)),
+     ?_assertException(error, function_clause, pm_pap:c_assoc(U, [#ar{id = 'r'}], OA)),
      ?_assertMatch({error, _Reason}, pm_pap:c_assoc(UA, [#ar{id = 'x'}], OA))].
 
 tst_c_oblig() ->
@@ -1005,7 +1000,7 @@ tst_c_conj_uaprohib() ->
     ARs = [#ar{id = 'w'}],
     [?_assertMatch({ok, _}, pm_pap:c_conj_uaprohib(UA, ARs, [OA1], [OA2])),
      ?_assertError(function_clause, pm_pap:c_conj_uaprohib(U, ARs, [OA1], [OA2]))
-   ].
+    ].
 
 tst_c_disj_uprohib() ->
     {ok, PC} = pm_pap:c_pc(#pc{value = "a pc"}),
@@ -1062,7 +1057,7 @@ tst_c_disj_uaprohib() ->
     ARs = [#ar{id = 'w'}],
     [?_assertMatch({ok, _}, pm_pap:c_disj_uaprohib(UA, ARs, [OA1], [OA2])),
      ?_assertError(function_clause, pm_pap:c_disj_uaprohib(U, ARs, [OA1], [OA2]))
-   ].
+    ].
 
 %% tst_eval_pattern() ->
 %%     ?debugMsg("eval_pattern: Not yet implemented"),
