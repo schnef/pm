@@ -79,8 +79,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-%% PRIVILEGE ⊆ U × AR × (PE\PC)
-%% TODO: can a privilege u-ar-u exist? (PE\PC) seems to imply it does.
+%% PRIVILEGE ⊆ U × AR × (PE\PC) 
+%% TODO: can a privilege u-ar-u exist?  (PE\PC) seems to imply it does.
 privilege(G, U, ARl, #u{id = Id}) ->
     privilege(G, U, ARl, Id);
 privilege(G, U, ARl, #ua{id = Id}) ->
@@ -90,35 +90,35 @@ privilege(G, U, ARl, #o{id = Id}) ->
 privilege(G, U, ARl, #oa{id = Id}) ->
     privilege(G, U, ARl, Id);
 privilege(G, #u{id = U_id}, ARl, PE_id) ->
-    case {mnesia:dirty_read(pe, U_id), mnesia:dirty_read(pe, PE_id)} of
-	{[#pe{vertex = Vu}], [#pe{vertex = Vpe}]} ->
+    case {mnesia:dirty_read(u, U_id), mnesia:dirty_read(pe, PE_id)} of
+	{[#u{}], [#pe{}]} ->
 	    ARs = sets:from_list([AR_id || #ar{id = AR_id} <- ARl]),
 	    U_deny_disj = mnesia:dirty_read(u_deny_disj, U_id),
 	    U_deny_conj = mnesia:dirty_read(u_deny_conj, U_id),
-	    case prohibited(G, U_deny_disj, U_deny_conj, Vpe, ARs) of
+	    case prohibited(G, U_deny_disj, U_deny_conj, PE_id, ARs) of
 		true ->
 		    deny;
 		false ->
-		    privilege(G, digraph:out_edges(G, Vu), ARs, Vpe, [], [])
+		    privilege(G, digraph:out_edges(G, U_id), ARs, PE_id, [], [])
 	    end;
 	_ ->
 	    {error, not_found}
     end.
 
-privilege(_G, [], _ARs, _Vpe, _Vua_visited, _AT_ignore) ->
+privilege(_G, [], _ARs, _PE, _UA_visited, _AT_ignore) ->
     deny;
-privilege(G, [Edge | Rest], ARs, Vpe, Vua_visited, AT_ignore) ->
-    {_Edge, _V, Vua, UA_id} = digraph:edge(G, Edge),
-    Result = case lists:member(Vua, Vua_visited) of
+privilege(G, [Edge | Rest], ARs, PE_id, UA_visited, AT_ignore) ->
+    {_Edge, _Vertex, UA_id, _Label} = digraph:edge(G, Edge),
+    Result = case lists:member(UA_id, UA_visited) of
     		 false ->
 		     UA_deny_disj = mnesia:dirty_read(ua_deny_disj, UA_id),
 		     UA_deny_conj = mnesia:dirty_read(ua_deny_conj, UA_id),
-		     case prohibited(G, UA_deny_disj, UA_deny_conj, Vpe, ARs) of
+		     case prohibited(G, UA_deny_disj, UA_deny_conj, PE_id, ARs) of
     			 true ->
     			     deny;
     			 false ->
 			     Assocs = mnesia:dirty_read(assoc, UA_id),
-    			     assocs(G, Assocs, ARs, Vpe, AT_ignore)
+    			     assocs(G, Assocs, ARs, PE_id, AT_ignore)
     		     end;
     		 true ->
     		     {ARs, AT_ignore}
@@ -127,28 +127,27 @@ privilege(G, [Edge | Rest], ARs, Vpe, Vua_visited, AT_ignore) ->
     	{ARs_remain, AT_ignore1} ->	
     	    %% TODO: we go down to the pc and don't stop at the last ua
     	    %% before finding out we cannot go down any further. Change
-    	    %% stop criterium?
-    	    Edges = digraph:out_edges(G, Vua),
+    	    %% stop criterion?
+    	    Edges = digraph:out_edges(G, UA_id),
     	    %% TODO: Can the construct Vuas ++ Rest give trouble for tail recursion?
-    	    privilege(G, Edges ++ Rest, ARs_remain, Vpe, [Vua | Vua_visited], AT_ignore1);
+    	    privilege(G, Edges ++ Rest, ARs_remain, PE_id, [UA_id | UA_visited], AT_ignore1);
     	_ -> % the result is either grant or deny
     	    Result
     end.
 
-assocs(_G, [], ARs, _Vpe, AT_ignore) ->
+assocs(_G, [], ARs, _PE_id, AT_ignore) ->
     {ARs, AT_ignore};
-assocs(G, [#assoc{b = ARs_id, c = AT_id} | Assocs], ARs, Vpe, AT_ignore) ->
+assocs(G, [#assoc{b = ARs_id, c = AT_id} | Assocs], ARs, PE_id, AT_ignore) ->
     case lists:member(AT_id, AT_ignore) of
 	false ->
 	    [#set{value = ARs_assoc}] = mnesia:dirty_read(arset, ARs_id),
 	    case sets:subtract(ARs, ARs_assoc) of
 		ARs -> % Association has no matching AR's
-		    assocs(G, Assocs, ARs, Vpe, AT_ignore);
+		    assocs(G, Assocs, ARs, AT_id, AT_ignore);
 		ARs1 -> % Partial or full match
-		    [#pe{vertex = Vat}] = mnesia:dirty_read(pe, AT_id),
-		    case Vpe =:= Vat orelse digraph:get_path(G, Vpe, Vat) of
-			false -> % Vpe is not contained by Vat
-			    assocs(G, Assocs, ARs, Vpe, [AT_id | AT_ignore]);
+		    case PE_id =:= AT_id orelse digraph:get_path(G, PE_id, AT_id) of
+			false -> % PE is not contained by AT
+			    assocs(G, Assocs, ARs, PE_id, [AT_id | AT_ignore]);
 			_ -> % There is a path so Vpe is contained by Vat
 			    %% TODO: Can we use the path found to
 			    %% build a list with vertices which
@@ -161,29 +160,29 @@ assocs(G, [#assoc{b = ARs_id, c = AT_id} | Assocs], ARs, Vpe, AT_ignore) ->
 				0 -> % Matched all AR's, so we are done
 				    grant;
 				_ -> % Look for more associations for the remaining AR's
-				    assocs(G, Assocs, ARs1, Vpe, AT_ignore)
+				    assocs(G, Assocs, ARs1, PE_id, AT_ignore)
 			    end
 		    end
 	    end;
 	true ->
 	    ?LOG_DEBUG("Ignored ~p~n", [AT_id]),
-	    assocs(G, Assocs, ARs, Vpe, AT_ignore)
+	    assocs(G, Assocs, ARs, PE_id, AT_ignore)
     end.
 
 %% Is called as prohibited(G, UA_deny_conj, UA_deny_disj, Vpe, ARs, AT_type)
-prohibited(_G, [], [], _Vpe, _ARs) ->
+prohibited(_G, [], [], _PE_id, _ARs) ->
     false;
-prohibited(G, Disj, Conj, Vpe, ARs) ->
-    case prohib(G, disjunctive, Disj, Vpe, ARs) of
+prohibited(G, Disj, Conj, PE_id, ARs) ->
+    case prohib(G, disjunctive, Disj, PE_id, ARs) of
 	false ->
-	    prohib(G, conjunctive, Conj, Vpe, ARs);
+	    prohib(G, conjunctive, Conj, PE_id, ARs);
 	true ->
 	    true
     end.
 
-prohib(_G, _Type, [], _Vpe, _ARs) ->
+prohib(_G, _Type, [], _PE_id, _ARs) ->
     false;
-prohib(G, Type, [#prohib{b = ARs_id, c = ATI_id, d = ATE_id} | Rest], Vpe, ARs) ->    
+prohib(G, Type, [#prohib{b = ARs_id, c = ATI_id, d = ATE_id} | Rest], PE_id, ARs) ->    
     [#set{value = ARs_prohib}] = mnesia:dirty_read(arset, ARs_id),
     Result = case sets:is_disjoint(ARs, ARs_prohib) of
 		 false ->
@@ -191,9 +190,9 @@ prohib(G, Type, [#prohib{b = ARs_id, c = ATI_id, d = ATE_id} | Rest], Vpe, ARs) 
 		     [#set{value = ATEs}] = mnesia:dirty_read(ateset, ATE_id),
 		     case Type of
 			 disjunctive ->
-			     disj_prohib(G, ATIs, ATEs, Vpe);
+			     disj_prohib(G, ATIs, ATEs, PE_id);
 			 conjunctive ->
-			     conj_prohib(G, ATIs, ATEs, Vpe)
+			     conj_prohib(G, ATIs, ATEs, PE_id)
 		     end;
 		 true ->
 		     false
@@ -202,54 +201,52 @@ prohib(G, Type, [#prohib{b = ARs_id, c = ATI_id, d = ATE_id} | Rest], Vpe, ARs) 
 	true ->
 	    true;
 	false ->
-	    prohib(G, Type, Rest, Vpe, ARs)
+	    prohib(G, Type, Rest, PE_id, ARs)
     end.
 
 %% TRUE -> PROHIBITED = NOT ALLOWED
-disj_prohib(_G, _ATIs, [], _Vpe) ->
+disj_prohib(_G, _ATIs, [], _PE_id) ->
     true; % Nothing excluded -> all prohibited
-disj_prohib(G, ATIs, ATEs, Vpe) ->
-    case in_any(G, ATIs, Vpe) of
+disj_prohib(G, ATIs, ATEs, PE_id) ->
+    case in_any(G, ATIs, PE_id) of
 	true ->
 	    true;
 	false ->
-	    not(in_any(G, ATEs, Vpe))
+	    not(in_any(G, ATEs, PE_id))
     end.
 
-conj_prohib(_G, [], _ATEs, _Vpe) ->
+conj_prohib(_G, [], _ATEs, _PE_id) ->
     false; % Nothing included -> nothing prohibited
-conj_prohib(G, ATIs, ATEs, Vpe) ->
-    case in_all(G, ATIs, Vpe) of
+conj_prohib(G, ATIs, ATEs, PE_id) ->
+    case in_all(G, ATIs, PE_id) of
 	true ->
-	    not(in_any(G, ATEs, Vpe));
+	    not(in_any(G, ATEs, PE_id));
 	false ->
 	    false
     end.
 
 in_any(G, Set, Type) when not is_list(Set) ->
     in_any(G, sets:to_list(Set), Type);
-in_any(_G, [], _Vpe) ->
+in_any(_G, [], _PE_id) ->
     false;
-in_any(G, [AT | Rest], Vpe) ->
-    [#pe{vertex = Vat}] = mnesia:dirty_read(pe, AT),
-    case digraph:get_path(G, Vpe, Vat) of
+in_any(G, [AT_id | Rest], PE_id) ->
+    case digraph:get_path(G, PE_id, AT_id) of
 	false ->
-	    in_any(G, Rest, Vpe);
+	    in_any(G, Rest, PE_id);
 	_ ->
 	    true
     end.
 
-in_all(G, Set, Vpe) when not is_list(Set) ->
-    in_all(G, sets:to_list(Set), Vpe);
-in_all(_G, [], _Vpe) ->
+in_all(G, Set, PE_id) when not is_list(Set) ->
+    in_all(G, sets:to_list(Set), PE_id);
+in_all(_G, [], _PE_id) ->
     true;
-in_all(G, [AT | Rest], Vpe) ->
-    [#pe{vertex = Vat}] = mnesia:dirty_read(pe, AT),
-    case digraph:get_path(G, Vpe, Vat) of
+in_all(G, [AT_id | Rest], PE_id) ->
+    case digraph:get_path(G, PE_id, AT_id) of
 	false ->
 	    false;
 	_ ->
-	    in_all(G, Rest, Vpe)
+	    in_all(G, Rest, PE_id)
     end.
 
 %%%===================================================================

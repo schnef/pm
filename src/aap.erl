@@ -124,7 +124,9 @@ peg(L) ->
     [F(E) || E <- L],
     G.
     
-%% digraph_utils:topsort(G) will return [u1,ua1,ua11,u2,ua2,ua12,o1,oa1,o2,oa2,oa20,oa21,pc1] for peg(fig2()). 
+%% digraph_utils:topsort(G) will return
+%% [u1,ua1,ua11,u2,ua2,ua12,o1,oa1,o2,oa2,oa20,oa21,pc1] for
+%% peg(fig2()).
 
 %% Build a graph with parents pointing to their children.
 pegr(L) ->
@@ -139,7 +141,9 @@ pegr(L) ->
     [F(E) || E <- L],
     G.
 
-%% digraph_utils:topsort(G) will return [pc1,ua11,ua12,ua1,u1,ua2,u2,oa21,oa20,oa1,o1,oa2,o2] for pegr(fig2()). 
+%% digraph_utils:topsort(G) will return
+%% [pc1,ua11,ua12,ua1,u1,ua2,u2,oa21,oa20,oa1,o1,oa2,o2] for
+%% pegr(fig2()).
 
 
 %% =============================================================================

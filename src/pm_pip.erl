@@ -93,18 +93,18 @@ create_oa_in_pc(G, #oa{id = X} = OA, #pc{id = Y}) ->
 %% @doc add `X' and assign it to `Y' in digraph `G'. Also add `X' to
 %% the set PE and {X, Y} to the set ASSIGN.
 create_x_in_y(G, X, Y) ->
-    [#pe{vertex = Vy} = PEY] = mnesia:read(pe, Y, write),
-    case digraph:add_vertex(G) of
+    [PEY] = mnesia:read(pe, Y, write),
+    case digraph:add_vertex(G, X) of
 	{error, Reason} ->
 	    erlang:error(Reason);
-	Vx ->
+	_X ->
 	    %% TODO: is label used? should the label be {X, Y} as an ASSIGN?
-	    case digraph:add_edge(G, Vx, Vy, Y) of
+	    case digraph:add_edge(G, X, Y) of
 		{error, Reason} ->
 		    erlang:error(Reason);
 		Edge ->
 		    %% ref_cnt for X is 1 because of the assignment
-		    mnesia:write(#pe{id = X, vertex = Vx, ref_cnt = 1}),
+		    mnesia:write(#pe{id = X, ref_cnt = 1}),
 		    mnesia:write(PEY#pe{ref_cnt = PEY#pe.ref_cnt + 1}),
 		    mnesia:write(#assign{a = X, b = Y, edge = Edge})
 	    end
@@ -122,11 +122,11 @@ create_pc(G, #pc{id = X} = PC) ->
 -spec create_x(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
 %% @doc add a policy element x to the digraph `G' and to the set PE.
 create_x(G, X) ->
-    case digraph:add_vertex(G) of
+    case digraph:add_vertex(G, X) of
 	{error, Reason} ->
 	    erlang:error(Reason);
-	Vx ->
-	    mnesia:write(#pe{id = X, vertex = Vx, ref_cnt = 0})
+	_X ->
+	    mnesia:write(#pe{id = X, ref_cnt = 0})
     end.
 
 %% C.3 Element Deletion Commands
@@ -160,13 +160,12 @@ delete_pc(G, X) ->
     delete_x(G, X),
     mnesia:delete({pc, X}).
 
-
 -spec delete_x(G :: digraph:graph(), X :: pm:id()) -> ok | no_return().
 %% @doc delete a policy element x from the policy representation
 delete_x(G, X) ->
     %% ref_cnt must be zero for this action!  
-    [#pe{vertex = V, ref_cnt = 0} = PE] = mnesia:read(pe, X, write),
-    digraph:del_vertex(G, V),
+    [#pe{ref_cnt = 0} = PE] = mnesia:read(pe, X, write),
+    digraph:del_vertex(G, X),
     mnesia:delete_object(PE).
     
 %% C.4 Entity creation
@@ -367,9 +366,9 @@ create_pumapping(P, U, PU1) ->
 -spec create_assign(G :: digraph:graph(), X :: pm:id(), Y :: pm:id()) -> ok | no_return().
 %% @doc add tuple (x, y) to the assignment relation
 create_assign(G, X, Y) ->
-    [#pe{vertex = Vx} = PEX] = mnesia:read(pe, X, write),
-    [#pe{vertex = Vy} = PEY] = mnesia:read(pe, Y, write),
-    case digraph:add_edge(G, Vx, Vy, Y) of
+    [#pe{} = PEX] = mnesia:read(pe, X, write),
+    [#pe{} = PEY] = mnesia:read(pe, Y, write),
+    case digraph:add_edge(G, X, Y) of
 	{error, Reason} ->
 	    erlang:error(Reason);
 	Edge ->
@@ -508,8 +507,8 @@ transaction(Fun) ->
 %% attribute `UA'.
 users(G, #ua{id = X} = _UA) -> 
     [#ua{}] = mnesia:read(ua, X),
-    [#pe{vertex = Vua}] = mnesia:dirty_read(pe, X),
-    users(G, digraph:in_edges(G, Vua), [], []).
+    [#pe{}] = mnesia:dirty_read(pe, X),
+    users(G, digraph:in_edges(G, X), [], []).
 
 users(_G, [], _Visited, Leafs) ->
     Leafs;

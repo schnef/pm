@@ -13,7 +13,7 @@
 -record(obligation, {u, pattern, response}).
 
 %% policy elements, used internaly by the PIP, PAP, PDP etc.
--record(pe, {id, vertex, ref_cnt = 0}).
+-record(pe, {id, ref_cnt = 0}).
 -record(p, {id, value}).
 -record(u, {id, value}).
 -record(ua, {id, value}).
