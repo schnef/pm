@@ -22,6 +22,8 @@
 	 transaction/1
 	]).
 
+-export([users/2, objects/2, elements/2]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -496,6 +498,49 @@ transaction(Fun) ->
 	{aborted, Reason} ->
 	    {error, Reason}
     end.
+
+-spec users(G, UA) -> [U] when
+      G :: digraph:graph(),
+      UA :: pm:ua(),
+      U :: pm:u().
+%% @doc The `users' function represents the mapping from a user
+%% attribute to the set of users that are contained by that user
+%% attribute `UA'.
+users(G, #ua{id = X} = _UA) -> 
+    [#ua{}] = mnesia:read(ua, X),
+    [#pe{vertex = Vua}] = mnesia:dirty_read(pe, X),
+    users(G, digraph:in_edges(G, Vua), [], []).
+
+users(_G, [], _Visited, Leafs) ->
+    Leafs;
+users(G, [Edge | Rest], Visited, Leafs) ->
+    Leafs.
+
+-spec objects(G, OA) -> [O] when
+      G :: digraph:graph(),
+      OA :: pm:oa(),
+      O :: pm:o().
+%% @doc The `objects' function represents the mapping from a object
+%% attribute to the set of objects that are contained by that object
+%% attribute `UA'.
+objects(G, #oa{id = X} = _OA) ->
+    objects(G, X);
+objects(G, #o{id = X} = _OA) -> 
+    objects(G, X);
+objects(G, X) ->
+    [].
+
+-spec elements(G, PE) -> [E] when
+      G :: digraph:graph(),
+      PE :: pm:pe(),
+      E :: pm:pe().
+%% @doc The `elements' function represents the mapping from a given
+%% policy element `PE' to the set of policy elements that includes the
+%% policy element and all the policy elements contained by that policy
+%% element.
+elements(G, PA) -> 
+    [].
+
     
 %%%===================================================================
 %%% Tests
