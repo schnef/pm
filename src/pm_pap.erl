@@ -608,7 +608,7 @@ handle_call({c_u_in_ua, U, UA}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
 				Id = pm_pip:allocate_id(),
 				pm_pip:create_u_in_ua(G, U#u{id = Id}, UA)
-			end),
+ 			end),
     {reply, Reply, State};
 handle_call({c_ua_in_ua, UA1, UA2}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->

@@ -260,7 +260,7 @@ allocate_id() ->
 %% list of values. This is used for determining the value of a set
 %% id. Instead of generating new ids for the same piece of data, data
 %% is reused and reference counted.
-
+%%
 %% TODO: we use a 32 bit hash (maybe 27 bits) to calculate a key based
 %% on the value(s) passed to the allocate_id function. Is the range
 %% sufficient? Use hash functions from the crypto lib?
@@ -269,6 +269,10 @@ allocate_id(Values) when is_list(Values) ->
     %% set, you can _NOT_ change the range anymore since the result of
     %% the hash differs!
     %% erlang:phash2(Values). 
+    %%
+    %% NB: the hash is taken from the elements in the list, not the
+    %% list itself, i.e. even if the implementation of the hash
+    %% changes, the hash function will still return the same id.
     erlang:phash2(lists:usort(Values), 16#100000000).
 
 %% C.5 Entity deletion

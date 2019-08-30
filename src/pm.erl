@@ -7,6 +7,8 @@
 -include("pm.hrl").
 
 %% API
+-export([powerset/1, powerset2/1]).
+
 -export([start_link/0, new_session/2, end_session/1,
 	 switch_assignment_between_uas/4]).
 
@@ -41,6 +43,31 @@
 %%% API
 %%%===================================================================
 
+powerset([]) -> [[]];
+powerset([H | T]) ->
+    PT = powerset(T),
+    powerset(H, PT, PT).
+
+powerset(_, [], Acc) -> Acc;
+powerset(X, [H | T], Acc) ->
+    powerset(X, T, [[X | H] | Acc]).
+
+powerset2(Lst) ->
+    N = length(Lst),
+    Max = trunc(math:pow(2, N)),
+    powerset2(Lst, 0, N, Max).
+
+powerset2(_, Max, _, Max) ->
+    ok;
+powerset2(Lst, I, N, Max) -> %when I < Max ->
+    %% The elements of the set are represented as bits
+    Subset = [lists:nth(Pos + 1, Lst) || Pos <- lists:seq(0, N - 1), I band (1 bsl Pos) =/= 0],
+    %% perform some actions on particular subset
+    io:format("Subset ~p~n", [Subset]),
+    powerset2(Lst, I + 1, N, Max).
+%% powerset2(_, _, _, _) ->
+%%     done.
+ 
 -spec new_session(Username, Password) -> {ok, Pid :: pid()} | {error, Reason :: term()} when
       Username :: string(),
       Password :: string().
