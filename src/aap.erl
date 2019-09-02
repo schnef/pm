@@ -4,7 +4,6 @@
 
 %% This module is used for experiments. Ignore!
 
-
 run() ->
     PE = sets:from_list([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
     ATIs = sets:from_list([2]),
@@ -113,38 +112,35 @@ fig2() ->
 %% Build graph with children pointing to their parent. This is what a
 %% Policy Element Diagram should look like.
 peg(L) ->
-    G = digraph:new([acyclic]),
-    F = fun({N, Cs}) ->
-		digraph:add_vertex(G, N),
-		[begin
-		     digraph:add_vertex(G, C),
-		     digraph:add_edge(G, C, N)
-		 end|| C <- Cs]
+    F = fun(G, X, Y) ->
+		digraph:add_edge(G, X, Y)
 	end,
-    [F(E) || E <- L],
-    G.
-    
+    g(L, F).
 %% digraph_utils:topsort(G) will return
 %% [u1,ua1,ua11,u2,ua2,ua12,o1,oa1,o2,oa2,oa20,oa21,pc1] for
 %% peg(fig2()).
 
 %% Build a graph with parents pointing to their children.
 pegr(L) ->
-    G = digraph:new([acyclic]),
-    F = fun({N, Cs}) ->
-		digraph:add_vertex(G, N),
-		[begin
-		     digraph:add_vertex(G, C),
-		     digraph:add_edge(G, N, C)
-		 end|| C <- Cs]
+    F = fun(G, X, Y) ->
+		digraph:add_edge(G, Y, X)
 	end,
-    [F(E) || E <- L],
-    G.
+    g(L, F).
 
 %% digraph_utils:topsort(G) will return
 %% [pc1,ua11,ua12,ua1,u1,ua2,u2,oa21,oa20,oa1,o1,oa2,o2] for
 %% pegr(fig2()).
 
+g(L, F) ->
+    G = digraph:new([acyclic]),
+    [begin
+	 digraph:add_vertex(G, N),
+	 [begin
+	      digraph:add_vertex(G, C),
+	      F(G, C, N)
+	  end || C <- Cs]
+     end || {N, Cs} <- L],
+    G.
 
 %% =============================================================================
 %% Topological sort
