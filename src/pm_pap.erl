@@ -587,12 +587,31 @@ register_p(P, U) ->
 unregister_p(P) ->
     gen_server:cast(?SERVER, {unregister_p, P}).
 
+-spec users(UA) -> [pm:id()] when
+      UA :: pm:ua().
+%% @doc The `users' function represents the mapping from a user
+%% attribute to the set of users that are contained by that user
+%% attribute `UA'. The function returns a list with the ids of the
+%% users.
 users(UA) ->
     gen_server:call(?SERVER, {users, UA}).
 
+-spec objects(OA) -> [pm:id()] when
+      OA :: pm:oa().
+%% @doc The `objects' function represents the mapping from a object
+%% attribute to the set of objects that are contained by that object
+%% attribute `OA'. The function returns a list with the ids of the
+%% objects.
 objects(OA) ->
     gen_server:call(?SERVER, {objects, OA}).
 
+-spec elements(PE) -> [pm:id()] when
+      PE :: pm:pe().
+%% @doc The `elements' function represents the mapping from a given
+%% policy element `PE' to the set of policy elements that includes the
+%% policy element and all the policy elements contained by that policy
+%% element. The function returns a list with the ids of the
+%% policy elements.
 elements(PE) ->
     gen_server:call(?SERVER, {elements, PE}).
 

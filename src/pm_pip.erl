@@ -521,7 +521,7 @@ users(G, #ua{id = X} = _UA) ->
       O :: pm:o().
 %% @doc The `objects' function represents the mapping from a object
 %% attribute to the set of objects that are contained by that object
-%% attribute `UA'.
+%% attribute `OA'.
 objects(G, #oa{id = X} = _OA) ->
     [O || {o, _} = O <- digraph_utils:reaching([X], G)].
 
