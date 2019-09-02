@@ -14,7 +14,7 @@
 	 delete_rop/1, delete_aop/1, delete_ar/1, delete_arset/1,
 	 create_atiset/2, create_ateset/2, create_pattern/2, create_response/2,
 	 delete_atiset/1, delete_ateset/1, delete_pattern/1, delete_response/1,
-	 allocate_id/0, allocate_id/1,
+	 allocate_id/1, allocate_id/2,
 	 create_p/3, delete_p/2, 
 	 create_pumapping/3, create_assign/3, create_assoc/3, create_prohib/5, create_oblig/3,
 	 delete_pumapping/3, delete_assign/3, delete_assoc/3, delete_prohib/5, delete_oblig/3,
@@ -254,9 +254,15 @@ create_seq(X, Y, Table) ->
 -spec allocate_id() -> pm:id().
 %% @doc allocate an identifier not yet in use by the PM framework
 allocate_id() ->
-    zuuid:v4().
+    {uuid, Id} =  zuuid:v4(),
+    Id.
 
--spec allocate_id(Values :: nonempty_list(term())) -> pm:id().
+-spec allocate_id(Tag :: pm:id_tag()) -> pm:id().
+%% @doc allocate a tagged identifier not yet in use by the PM framework
+allocate_id(Tag) ->
+    Id = allocate_id(),
+    {Tag, Id}.
+
 %% @doc allocate an identifier for use in the PM framework based on a
 %% list of values. This is used for determining the value of a set
 %% id. Instead of generating new ids for the same piece of data, data
@@ -265,7 +271,8 @@ allocate_id() ->
 %% TODO: we use a 32 bit hash (maybe 27 bits) to calculate a key based
 %% on the value(s) passed to the allocate_id function. Is the range
 %% sufficient? Use hash functions from the crypto lib?
-allocate_id(Values) when is_list(Values) ->
+-spec allocate_id(Tag :: pm:id_tag(), Values :: nonempty_list(term())) -> pm:id().
+allocate_id(Tag, Values) when is_list(Values) ->
     %% TODO: can range be set to its default of 0 .. 2^27 - 1? Once
     %% set, you can _NOT_ change the range anymore since the result of
     %% the hash differs!
@@ -274,7 +281,7 @@ allocate_id(Values) when is_list(Values) ->
     %% NB: the hash is taken from the elements in the list, not the
     %% list itself, i.e. even if the implementation of the hash
     %% changes, the hash function will still return the same id.
-    erlang:phash2(lists:usort(Values), 16#100000000).
+    {Tag, erlang:phash2(lists:usort(Values), 16#100000000)}.
 
 %% C.5 Entity deletion
 -spec delete_p(X :: pm:p(), PU :: [#process_user{}]) -> [#process_user{}] | no_return().
@@ -961,11 +968,11 @@ tst_delete_response() ->
     [?_assertEqual(ok, t(F1))].
     
 tst_allocate_id() ->
-    Id1 = allocate_id(),
-    Id2 = allocate_id(),
-    Id3 = allocate_id([a, b, c]),
-    Id4 = allocate_id([a, b, c]),
-    Id5 = allocate_id([b, c, a]),
+    Id1 = allocate_id(t),
+    Id2 = allocate_id(t),
+    Id3 = allocate_id(t, [a, b, c]),
+    Id4 = allocate_id(t, [a, b, c]),
+    Id5 = allocate_id(t, [b, c, a]),
     [?_assertNotEqual(Id1, Id2),
      ?_assertEqual(Id3, Id4),
      ?_assertEqual(Id3, Id5)].

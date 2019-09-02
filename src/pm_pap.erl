@@ -606,37 +606,37 @@ init([]) ->
 %% @private
 handle_call({c_u_in_ua, U, UA}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
-				Id = pm_pip:allocate_id(),
+				Id = pm_pip:allocate_id(u),
 				pm_pip:create_u_in_ua(G, U#u{id = Id}, UA)
  			end),
     {reply, Reply, State};
 handle_call({c_ua_in_ua, UA1, UA2}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
-				Id = pm_pip:allocate_id(),
+				Id = pm_pip:allocate_id(ua),
 				pm_pip:create_ua_in_ua(G, UA1#ua{id = Id}, UA2)
 			end),
     {reply, Reply, State};
 handle_call({c_ua_in_pc, UA, PC}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
-				Id = pm_pip:allocate_id(),
+				Id = pm_pip:allocate_id(ua),
 				pm_pip:create_ua_in_pc(G, UA#ua{id = Id}, PC)
 			end),
     {reply, Reply, State};
 handle_call({c_o_in_oa, O, OA}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
-				Id = pm_pip:allocate_id(),
+				Id = pm_pip:allocate_id(o),
 				pm_pip:create_o_in_oa(G, O#o{id = Id}, OA)
 			end),
     {reply, Reply, State};
 handle_call({c_oa_in_oa, OA1, OA2}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
-				Id = pm_pip:allocate_id(),
+				Id = pm_pip:allocate_id(oa),
 				pm_pip:create_oa_in_oa(G, OA1#oa{id = Id}, OA2)
 			end),
     {reply, Reply, State};
 handle_call({c_oa_in_pc, OA, PC}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
-				Id = pm_pip:allocate_id(),
+				Id = pm_pip:allocate_id(oa),
 				pm_pip:create_oa_in_pc(G, OA#oa{id = Id}, PC)
 			end),
     {reply, Reply, State};
@@ -647,13 +647,13 @@ handle_call({c_assign, X, Y}, _From, #state{g = G} = State) ->
     {reply, Reply, State};
 handle_call({c_pc, PC}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
-				Id = pm_pip:allocate_id(),
+				Id = pm_pip:allocate_id(pc),
 				pm_pip:create_pc(G, PC#pc{id = Id})
 			end),
     {reply, Reply, State};
 handle_call({c_assoc, X, AR_ids, Z}, _From, State) ->
     Reply = transaction(fun() ->
-				ARset = pm_pip:allocate_id(AR_ids),
+				ARset = pm_pip:allocate_id(arset, AR_ids),
 				pm_pip:create_arset(ARset, AR_ids),
 				pm_pip:create_assoc(X, ARset, Z),
 				{ok, ARset}
@@ -666,11 +666,11 @@ handle_call({c_prohib, P, AR_ids, ATI_ids, ATE_ids, Prohib_table}, _From, #state
 handle_call({c_prohib, W, AR_ids, ATI_ids, ATE_ids, Prohib_table}, _From, State) ->
     %% TODO: No checks on defining the same prohibition over and over again.
     Reply = transaction(fun() ->
-				ARset = pm_pip:allocate_id(AR_ids),
+				ARset = pm_pip:allocate_id(arset, AR_ids),
 				pm_pip:create_arset(ARset, AR_ids),
-				ATIset = pm_pip:allocate_id(ATI_ids),
+				ATIset = pm_pip:allocate_id(atset, ATI_ids),
 				pm_pip:create_atiset(ATIset, ATI_ids),
-				ATEset = pm_pip:allocate_id(ATE_ids),
+				ATEset = pm_pip:allocate_id(atset, ATE_ids),
 				pm_pip:create_ateset(ATEset, ATE_ids),
 				pm_pip:create_prohib(W, ARset, ATIset, ATEset, Prohib_table),
 				{ok, {ARset, ATIset, ATEset}}
@@ -685,9 +685,9 @@ handle_call({eval_response, _P, _Responses}, _From, State) ->
 handle_call({c_oblig, P, Patterns, Responses}, _From, #state{pu = PU} = State) ->
     Reply = transaction(fun() ->
 				U = pm_pip:process_user(P, PU),
-				Pattern_id = pm_pip:allocate_id(),
+				Pattern_id = pm_pip:allocate_id(pattern),
 				pm_pip:create_pattern(Pattern_id, Patterns),
-				Response_id = pm_pip:allocate_id(),
+				Response_id = pm_pip:allocate_id(response),
 				pm_pip:create_response(Response_id, Responses),
 				pm_pip:create_oblig(U, Pattern_id, Response_id),
 				{ok, {U, Pattern_id, Response_id}}

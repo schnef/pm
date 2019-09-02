@@ -17,7 +17,8 @@
 -export_types([id/0, u/0, ua/0, o/0, oa/0, pc/0, pe/0,
 	       assign/0, assoc/0, prohib/0, oblig/0, op/0, ar/0]).
 
--type id() :: term().
+-type id_tag() :: u | ua | o | oa | pc | arset | atset | pattern | response.
+-type id() :: {id_tag(), term()}.
 -type u() :: #u{}.
 -type ua() :: #ua{}.
 -type o() :: #o{}.
