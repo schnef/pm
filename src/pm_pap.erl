@@ -22,6 +22,8 @@
 -include("pm.hrl").
 
 %% API
+-export([users/1, objects/1, elements/1]).
+
 -export([start_link/0, stop/0, get_digraph/0,
 	 c_u_in_ua/2, c_ua_in_ua/2, c_ua_in_pc/2, c_u_to_ua/2, c_ua_to_ua/2, c_ua_to_pc/2,
 	 c_o_in_oa/2, c_oa_in_oa/2, c_oa_in_pc/2, c_o_to_oa/2, c_oa_to_oa/2, c_oa_to_pc/2,
@@ -585,6 +587,15 @@ register_p(P, U) ->
 unregister_p(P) ->
     gen_server:cast(?SERVER, {unregister_p, P}).
 
+users(UA) ->
+    gen_server:call(?SERVER, {users, UA}).
+
+objects(OA) ->
+    gen_server:call(?SERVER, {objects, OA}).
+
+elements(PE) ->
+    gen_server:call(?SERVER, {elements, PE}).
+
 %% @doc Start server
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
@@ -771,6 +782,15 @@ handle_call({register_p, P, U}, _From, #state{pu = PU} = State) ->
 	[] ->
 	    {reply, {error, not_found}, State}
     end;
+handle_call({users, UA}, _From, #state{g = G} = State) ->
+    Reply = pm_pip:users(G, UA),
+    {reply, Reply, State};
+handle_call({objects, OA}, _From, #state{g = G} = State) ->
+    Reply = pm_pip:objects(G, OA),
+    {reply, Reply, State};
+handle_call({elements, PE}, _From, #state{g = G} = State) ->
+    Reply = pm_pip:elements(G, PE),
+    {reply, Reply, State};
 handle_call(Request, _From, State) ->
     Reply = {error, {not_implemented, Request}},
     {reply, Reply, State}.
@@ -896,7 +916,8 @@ tsts(_Pids) ->
      tst_d_conj_uaprohib(),
      tst_d_disj_uprohib(),
      tst_d_disj_pprohib(),
-     tst_d_disj_uaprohib()
+     tst_d_disj_uaprohib(),
+     tst_users_objects_elements()
     ].
 
 
@@ -1330,5 +1351,22 @@ tst_d_disj_uaprohib() ->
     ATIset = UA_deny_disj#ua_deny_disj.atiset,
     ATEset = UA_deny_disj#ua_deny_disj.ateset,
     [?_assertMatch(ok, pm_pap:d_disj_uaprohib(UA, ARset, ATIset, ATEset))].
+
+tst_users_objects_elements() ->
+    {ok, PC} = c_pc(#pc{value = "Bank Teller example"}),
+    {ok, Branch_1_usr_attr} = c_ua_in_pc(#ua{value = "Branch 1 user attribute"}, PC),
+    {ok, Branch_1_obj_attr} = c_oa_in_pc(#oa{value = "Branch 1 object attribute"}, PC),
+    {ok, Teller} = c_ua_in_ua(#ua{value = "Teller"}, Branch_1_usr_attr),
+    {ok, Auditor} = c_ua_in_ua(#ua{value = "Auditor"}, Branch_1_usr_attr),
+    {ok, U1} = c_u_in_ua(#u{value = "User u1"}, Teller),
+    {ok, U2} = c_u_in_ua(#u{value = "User u2"}, Auditor),
+    {ok, Accounts} = c_oa_in_oa(#oa{value = "accounts"}, Branch_1_obj_attr),
+    {ok, O1} = c_o_in_oa(#o{value = "Account o1"}, Accounts),
+    [?_assertEqual(lists:sort([U1#u.id, U2#u.id]), lists:sort(users(Branch_1_usr_attr))),
+     ?_assertEqual([O1#o.id], objects(Branch_1_obj_attr)),
+     ?_assertEqual(lists:sort([Branch_1_usr_attr#ua.id, Branch_1_obj_attr#oa.id,
+			       Teller#ua.id, Auditor#ua.id, U1#u.id, U2#u.id,
+			       Accounts#oa.id, O1#o.id]),
+		   lists:sort(elements(PC)))].
 
 -endif.

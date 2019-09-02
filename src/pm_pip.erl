@@ -513,14 +513,7 @@ transaction(Fun) ->
 %% attribute to the set of users that are contained by that user
 %% attribute `UA'.
 users(G, #ua{id = X} = _UA) -> 
-    [#ua{}] = mnesia:read(ua, X),
-    [#pe{}] = mnesia:dirty_read(pe, X),
-    users(G, digraph:in_edges(G, X), [], []).
-
-users(_G, [], _Visited, Leafs) ->
-    Leafs;
-users(G, [Edge | Rest], Visited, Leafs) ->
-    Leafs.
+    [U || {u, _} = U <- digraph_utils:reaching([X], G)].
 
 -spec objects(G, OA) -> [O] when
       G :: digraph:graph(),
@@ -530,11 +523,7 @@ users(G, [Edge | Rest], Visited, Leafs) ->
 %% attribute to the set of objects that are contained by that object
 %% attribute `UA'.
 objects(G, #oa{id = X} = _OA) ->
-    objects(G, X);
-objects(G, #o{id = X} = _OA) -> 
-    objects(G, X);
-objects(G, X) ->
-    [].
+    [O || {o, _} = O <- digraph_utils:reaching([X], G)].
 
 -spec elements(G, PE) -> [E] when
       G :: digraph:graph(),
@@ -544,9 +533,18 @@ objects(G, X) ->
 %% policy element `PE' to the set of policy elements that includes the
 %% policy element and all the policy elements contained by that policy
 %% element.
-elements(G, PA) -> 
-    [].
-
+elements(_G, #u{id = X}) -> 
+    [X];
+elements(G, #ua{id = X}) -> 
+    elements(G, X);
+elements(_G, #o{id = X}) -> 
+    [X];
+elements(G, #oa{id = X}) -> 
+    elements(G, X);
+elements(G, #pc{id = X}) -> 
+    elements(G, X);
+elements(G, X) -> 
+    digraph_utils:reaching_neighbours([X], G).
     
 %%%===================================================================
 %%% Tests
@@ -968,14 +966,17 @@ tst_delete_response() ->
     [?_assertEqual(ok, t(F1))].
     
 tst_allocate_id() ->
-    Id1 = allocate_id(t),
-    Id2 = allocate_id(t),
-    Id3 = allocate_id(t, [a, b, c]),
+    Id0 = allocate_id(),
+    Id1 = allocate_id(),
+    Id2 = allocate_id(),
+    Id3 = allocate_id(t),
     Id4 = allocate_id(t, [a, b, c]),
-    Id5 = allocate_id(t, [b, c, a]),
-    [?_assertNotEqual(Id1, Id2),
-     ?_assertEqual(Id3, Id4),
-     ?_assertEqual(Id3, Id5)].
+    Id5 = allocate_id(t, [a, b, c]),
+    Id6 = allocate_id(t, [b, c, a]),
+    [?_assertNotEqual(Id0, Id1),
+     ?_assertNotEqual(Id2, Id3),
+     ?_assertEqual(Id4, Id5),
+     ?_assertEqual(Id4, Id6)].
 
 tst_create_assoc() ->
     G = digraph:new([acyclic]),
