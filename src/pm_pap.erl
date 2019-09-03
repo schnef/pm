@@ -22,8 +22,6 @@
 -include("pm.hrl").
 
 %% API
--export([users/1, objects/1, elements/1, icap/1]).
-
 -export([start_link/0, stop/0, get_digraph/0,
 	 c_u_in_ua/2, c_ua_in_ua/2, c_ua_in_pc/2, c_u_to_ua/2, c_ua_to_ua/2, c_ua_to_pc/2,
 	 c_o_in_oa/2, c_oa_in_oa/2, c_oa_in_pc/2, c_o_to_oa/2, c_oa_to_oa/2, c_oa_to_pc/2,
@@ -36,6 +34,8 @@
 	 d_pc/1, d_assoc/3, d_oblig/3,
 	 d_conj_uprohib/4, d_conj_pprohib/4, d_conj_uaprohib/4,
 	 d_disj_uprohib/4, d_disj_pprohib/4, d_disj_uaprohib/4]).
+
+-export([users/1, objects/1, elements/1, icap/1, iae/1]).
 
 %% Server name registery API
 -export([register_p/2, unregister_p/1]).
@@ -618,6 +618,9 @@ elements(PE) ->
 icap(UA) ->
     gen_server:call(?SERVER, {icap, UA}).
 
+iae(AT) ->
+    gen_server:call(?SERVER, {iae, AT}).
+
 %% @doc Start server
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
@@ -818,6 +821,11 @@ handle_call({icap, UA}, _From, #state{g = G} = State) ->
 				pm_pip:icap(G, UA)
 			end),
     {reply, Reply, State};
+handle_call({iae, AT}, _From, #state{g = G} = State) ->
+    Reply = transaction(fun() ->
+				pm_pip:iae(G, AT)
+			end),
+    {reply, Reply, State};
 handle_call(Request, _From, State) ->
     Reply = {error, {not_implemented, Request}},
     {reply, Reply, State}.
@@ -944,7 +952,8 @@ tsts(_Pids) ->
      tst_d_disj_uprohib(),
      tst_d_disj_pprohib(),
      tst_d_disj_uaprohib(),
-     tst_users_objects_elements()
+     tst_users_objects_elements(),
+     tst_icap_iae()
     ].
 
 
@@ -1395,5 +1404,34 @@ tst_users_objects_elements() ->
 			       Teller#ua.id, Auditor#ua.id, U1#u.id, U2#u.id,
 			       Accounts#oa.id, O1#o.id]),
 		   lists:sort(elements(PC)))].
-
+tst_icap_iae() ->
+    {ok, PC} = pm_pap:c_pc(#pc{}),
+    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC),
+    {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
+    {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
+    {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
+    ok = pm_pap:c_u_to_ua(U1, UA3),
+    {ok, _U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
+    {ok, OA1} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC),
+    {ok, OA2} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA1),
+    {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA2),
+    {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA2),
+    {ok, Assoc1} = pm_pap:c_assoc(UA1, [#ar{id = 'r'}], OA1),
+    {ok, Assoc2} = pm_pap:c_assoc(UA2, [#ar{id = 'w'}], O1),
+    {ok, Assoc3} = pm_pap:c_assoc(UA3, [#ar{id = 'w'}], O2),
+    ARset1 = Assoc1#association.arset,
+    ARset2 = Assoc2#association.arset,
+    ARset3 = Assoc3#association.arset,
+    [?_assertEqual([{ARset2, O1#o.id}], icap(UA2)),
+     ?_assertEqual([{ARset3, O2#o.id}], icap(UA3)),
+     ?_assertEqual(lists:sort([{ARset1, OA1#oa.id}, {ARset2, O1#o.id}, {ARset3, O2#o.id}]),
+		   lists:sort(icap(UA1))),
+     ?_assertEqual([{UA1#ua.id, ARset1}], iae(OA1)),
+     ?_assertEqual([{UA1#ua.id, ARset1}], iae(OA2)),
+     ?_assertEqual(lists:sort([{UA1#ua.id, ARset1}, {UA2#ua.id, ARset2}]),
+		   lists:sort(iae(O1))),
+     ?_assertEqual(lists:sort([{UA1#ua.id, ARset1}, {UA3#ua.id, ARset3}]),
+		   lists:sort(iae(O2)))
+    ].
+    
 -endif.

@@ -22,7 +22,7 @@
 	 transaction/1
 	]).
 
--export([users/2, objects/2, elements/2, icap/2]).
+-export([users/2, objects/2, elements/2, icap/2, iae/2]).
 
 %%%===================================================================
 %%% API
@@ -545,11 +545,47 @@ elements(G, #pc{id = X}) ->
     elements(G, X);
 elements(G, X) -> 
     digraph_utils:reaching_neighbours([X], G).
-    
+
+-spec icap(G, UA) -> [{ARset, AT}] when
+      G :: digraph:graph(),
+      UA :: pm:ua(),
+      ARset :: pm:id(),
+      AT :: pm:ua() | pm:oa() | pm:o().
+%% @doc The `icap' function returns the Inherent Capabilities of a
+%% User Attribute `UA'.
 icap(G, #ua{id = X}) ->
+    %% TODO: maybe use a mnesia (dirty) select instead of a read and
+    %% return the two fields of interest directly
     UAs = [UA || {ua, _} = UA <- digraph_utils:reaching([X], G)],
-    Assocs = [hd(mnesia:dirty_read(association, UA)) || UA <- UAs],
+    F = fun(UA, Acc) ->
+		mnesia:dirty_read(association, UA) ++ Acc
+	end,
+    Assocs = lists:foldl(F, [], UAs),
     [{ARset, AT} || #association{arset = ARset, at = AT} <- Assocs].
+
+-spec iae(G, AT) -> [{UA, ARset}] when
+      G :: digraph:graph(),
+      UA :: pm:ua(),
+      ARset :: pm:id(),
+      AT :: pm:ua() | pm:oa() | pm:o().
+%% @doc The `iae' function returns the Inherent Aeabilities of a
+%% User Attribute `UA'.
+iae(G, #ua{id = X}) ->
+    iae(G, X);
+iae(G, #o{id = X}) ->
+    iae(G, X);
+iae(G, #oa{id = X}) ->
+    iae(G, X);
+iae(G, X) ->
+    %% TODO: maybe use a mnesia (dirty) select instead of a indexed
+    %% read and return the two fields of interest directly
+    ATs = [AT || {Tag, _} = AT <- digraph_utils:reachable([X], G), 
+		 Tag =:= oa orelse Tag =:= o orelse Tag =:= ua],
+    F = fun(AT, Acc) ->
+		mnesia:dirty_index_read(association, AT, #association.at) ++ Acc
+	end,
+    Assocs = lists:foldl(F, [], ATs),
+    [{UA, ARset} || #association{ua = UA, arset = ARset} <- Assocs].
 
 %%%===================================================================
 %%% Tests
