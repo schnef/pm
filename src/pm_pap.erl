@@ -22,7 +22,7 @@
 -include("pm.hrl").
 
 %% API
--export([users/1, objects/1, elements/1]).
+-export([users/1, objects/1, elements/1, icap/1]).
 
 -export([start_link/0, stop/0, get_digraph/0,
 	 c_u_in_ua/2, c_ua_in_ua/2, c_ua_in_pc/2, c_u_to_ua/2, c_ua_to_ua/2, c_ua_to_pc/2,
@@ -615,6 +615,9 @@ objects(OA) ->
 elements(PE) ->
     gen_server:call(?SERVER, {elements, PE}).
 
+icap(UA) ->
+    gen_server:call(?SERVER, {icap, UA}).
+
 %% @doc Start server
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
@@ -809,6 +812,11 @@ handle_call({objects, OA}, _From, #state{g = G} = State) ->
     {reply, Reply, State};
 handle_call({elements, PE}, _From, #state{g = G} = State) ->
     Reply = pm_pip:elements(G, PE),
+    {reply, Reply, State};
+handle_call({icap, UA}, _From, #state{g = G} = State) ->
+    Reply = transaction(fun() ->
+				pm_pip:icap(G, UA)
+			end),
     {reply, Reply, State};
 handle_call(Request, _From, State) ->
     Reply = {error, {not_implemented, Request}},

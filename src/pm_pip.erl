@@ -22,7 +22,7 @@
 	 transaction/1
 	]).
 
--export([users/2, objects/2, elements/2]).
+-export([users/2, objects/2, elements/2, icap/2]).
 
 %%%===================================================================
 %%% API
@@ -546,6 +546,10 @@ elements(G, #pc{id = X}) ->
 elements(G, X) -> 
     digraph_utils:reaching_neighbours([X], G).
     
+icap(G, #ua{id = X}) ->
+    UAs = [UA || {ua, _} = UA <- digraph_utils:reaching([X], G)],
+    [hd(mnesia:dirty_read(assoc, UA)) || UA <- UAs].
+
 %%%===================================================================
 %%% Tests
 %%%===================================================================
