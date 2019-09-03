@@ -182,7 +182,7 @@ prohibited(G, Disj, Conj, PE_id, ARs) ->
 
 prohib(_G, _Type, [], _PE_id, _ARs) ->
     false;
-prohib(G, Type, [#prohib{b = ARs_id, c = ATI_id, d = ATE_id} | Rest], PE_id, ARs) ->    
+prohib(G, Type, [#prohibition{b = ARs_id, c = ATI_id, d = ATE_id} | Rest], PE_id, ARs) ->    
     [#set{value = ARs_prohib}] = mnesia:dirty_read(arset, ARs_id),
     Result = case sets:is_disjoint(ARs, ARs_prohib) of
 		 false ->

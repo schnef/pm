@@ -81,8 +81,8 @@ create_tables() ->
                                         {disc_copies, [node()]}
                                        ]),
     [{atomic, ok} = mnesia:create_table(Tbl,
-					[{record_name, prohib},
-					 {attributes, record_info(fields, prohib)},
+					[{record_name, prohibition},
+					 {attributes, record_info(fields, prohibition)},
 					 {type, bag},
 					 {index, [b, c, d]},
 					 {disc_copies, [node()]}

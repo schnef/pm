@@ -30,7 +30,7 @@
 %% policy elements, used internally by the PIP.
 -record(pe, {id, ref_cnt = 0}).
 -record(assign, {a, b, edge}).
--record(prohib, {a, b, c, d, value}).
+-record(prohibition, {a, b, c, d, value}).
 -record(set, {id, value, inst_cnt = 0, ref_cnt = 0}).
 -record(seq, {id, value, inst_cnt = 0, ref_cnt = 0}).
 

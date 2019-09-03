@@ -412,7 +412,7 @@ create_prohib(W, X, Y, Z, Prohib_table) ->
     mnesia:write(arset, ARset#set{ref_cnt = ARset#set.ref_cnt + 1}, write),
     mnesia:write(atiset, ATIset#set{ref_cnt = ATIset#set.ref_cnt + 1}, write),
     mnesia:write(ateset, ATEset#set{ref_cnt = ATEset#set.ref_cnt + 1}, write),
-    mnesia:write(Prohib_table, #prohib{a = W, b = X, c = Y, d = Z}, write).
+    mnesia:write(Prohib_table, #prohibition{a = W, b = X, c = Y, d = Z}, write).
 
 -spec create_oblig(X :: pm:id(), Y :: pm:id(), Z :: pm:id()) -> ok | no_return().
 %% @doc add tuple (x, y, z) to the obligation relation
@@ -472,7 +472,7 @@ delete_prohib(W, X, Y, Z, Prohib_table) ->
     mnesia:write(arset, ARset#set{ref_cnt = ARset#set.ref_cnt - 1}, write),
     mnesia:write(atiset, ATIset#set{ref_cnt = ATIset#set.ref_cnt - 1}, write),
     mnesia:write(ateset, ATEset#set{ref_cnt = ATEset#set.ref_cnt - 1}, write),
-    [Row] = mnesia:match_object(Prohib_table, #prohib{a = W, b = X, c = Y, d = Z, _ = '_'}, write),
+    [Row] = mnesia:match_object(Prohib_table, #prohibition{a = W, b = X, c = Y, d = Z, _ = '_'}, write),
     mnesia:delete_object(Prohib_table, Row, write).
 
 -spec delete_oblig(X :: pm:id(), Y :: pm:id(), Z :: pm:id()) -> ok | no_return().
@@ -548,7 +548,8 @@ elements(G, X) ->
     
 icap(G, #ua{id = X}) ->
     UAs = [UA || {ua, _} = UA <- digraph_utils:reaching([X], G)],
-    [hd(mnesia:dirty_read(association, UA)) || UA <- UAs].
+    Assocs = [hd(mnesia:dirty_read(association, UA)) || UA <- UAs],
+    [{ARset, AT} || #association{arset = ARset, at = AT} <- Assocs].
 
 %%%===================================================================
 %%% Tests
