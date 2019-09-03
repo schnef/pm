@@ -117,7 +117,7 @@ privilege(G, [Edge | Rest], ARs, PE_id, UA_visited, AT_ignore) ->
     			 true ->
     			     deny;
     			 false ->
-			     Assocs = mnesia:dirty_read(assoc, UA_id),
+			     Assocs = mnesia:dirty_read(association, UA_id),
     			     assocs(G, Assocs, ARs, PE_id, AT_ignore)
     		     end;
     		 true ->
@@ -137,7 +137,7 @@ privilege(G, [Edge | Rest], ARs, PE_id, UA_visited, AT_ignore) ->
 
 assocs(_G, [], ARs, _PE_id, AT_ignore) ->
     {ARs, AT_ignore};
-assocs(G, [#assoc{b = ARs_id, c = AT_id} | Assocs], ARs, PE_id, AT_ignore) ->
+assocs(G, [#association{arset = ARs_id, at = AT_id} | Assocs], ARs, PE_id, AT_ignore) ->
     case lists:member(AT_id, AT_ignore) of
 	false ->
 	    [#set{value = ARs_assoc}] = mnesia:dirty_read(arset, ARs_id),

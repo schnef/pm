@@ -19,10 +19,10 @@ install(Nodes) ->
     rpc:multicall(Nodes, application, stop, [mnesia]).
 
 start() ->
-    ok = mnesia:wait_for_tables([pe, u, ua, o, oa, pc, assign, assoc, 
+    ok = mnesia:wait_for_tables([pe, u, ua, o, oa, pc, assign, association, 
 				 u_deny_conj, p_deny_conj, ua_deny_conj,
 				 u_deny_disj, p_deny_disj, ua_deny_disj, 
-				 oblig, ar, aop, rop, arset, atiset, ateset,
+				 obligation, ar, aop, rop, arset, atiset, ateset,
 				 pattern, response],
 				5000).
 
@@ -74,10 +74,10 @@ create_tables() ->
 					{index, [b]},
                                         {disc_copies, [node()]}
                                        ]),
-    {atomic, ok} = mnesia:create_table(assoc,
-                                       [{attributes, record_info(fields, assoc)},
+    {atomic, ok} = mnesia:create_table(association,
+                                       [{attributes, record_info(fields, association)},
                                         {type, bag},
-					{index, [b, c]},
+					{index, [arset, at]},
                                         {disc_copies, [node()]}
                                        ]),
     [{atomic, ok} = mnesia:create_table(Tbl,
@@ -88,10 +88,10 @@ create_tables() ->
 					 {disc_copies, [node()]}
 					]) || Tbl <- [u_deny_conj, p_deny_conj, ua_deny_conj,
 						      u_deny_disj, p_deny_disj, ua_deny_disj]],
-    {atomic, ok} = mnesia:create_table(oblig,
-                                       [{attributes, record_info(fields, oblig)},
+    {atomic, ok} = mnesia:create_table(obligation,
+                                       [{attributes, record_info(fields, obligation)},
                                         {type, bag},
-					{index, [b, c]},
+					{index, [pattern, response]},
                                         {disc_copies, [node()]}                                   
 				       ]),
     [{atomic, ok} = mnesia:create_table(Tbl,

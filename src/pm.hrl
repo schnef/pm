@@ -27,12 +27,10 @@
 
 -record(process_user, {p :: pid(), u}).
 
-%% policy elements, used internaly by the PIP, PAP, PDP etc.
+%% policy elements, used internally by the PIP.
 -record(pe, {id, ref_cnt = 0}).
 -record(assign, {a, b, edge}).
--record(assoc, {a, b, c, edge}).
 -record(prohib, {a, b, c, d, value}).
--record(oblig, {a, b, c, value}).
 -record(set, {id, value, inst_cnt = 0, ref_cnt = 0}).
 -record(seq, {id, value, inst_cnt = 0, ref_cnt = 0}).
 

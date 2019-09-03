@@ -393,7 +393,7 @@ create_assoc(X, Y, Z) ->
     mnesia:write(PEX#pe{ref_cnt = PEX#pe.ref_cnt + 1}),
     mnesia:write(arset, ARset#set{ref_cnt = ARset#set.ref_cnt + 1}, write),
     mnesia:write(PEZ#pe{ref_cnt = PEZ#pe.ref_cnt + 1}),
-    mnesia:write(#assoc{a = X, b = Y, c = Z}).
+    mnesia:write(#association{ua = X, arset = Y, at = Z}).
 
 -spec create_prohib(W, X, Y, Z, Prohib_table) -> ok | no_return() when
       W :: pm:id(),
@@ -423,7 +423,7 @@ create_oblig(X, Y, Z) ->
     mnesia:write(PE#pe{ref_cnt = PE#pe.ref_cnt + 1}),
     mnesia:write(pattern, Pattern#seq{ref_cnt = Pattern#seq.ref_cnt + 1}, write),
     mnesia:write(response, Response#seq{ref_cnt = Response#seq.ref_cnt + 1}, write),
-    mnesia:write(#oblig{a = X, b = Y, c = Z}).
+    mnesia:write(#obligation{u = X, pattern = Y, response = Z}).
 
 %% C.7 Relation Rescindment Commands
 -spec delete_pumapping(P :: pm:p(), U :: pm:id(), PU :: [#process_user{}]) -> [#process_user{}] | no_return().
@@ -449,7 +449,7 @@ delete_assoc(X, Y, Z) ->
     [PEX] = mnesia:read(pe, X, write),
     [ARset] = mnesia:read(arset, Y, write),
     [PEZ] = mnesia:read(pe, Z, write),
-    [Row] = mnesia:match_object(#assoc{a = X, b = Y, c = Z, _ = '_'}),
+    [Row] = mnesia:match_object(#association{ua = X, arset = Y, at = Z, _ = '_'}),
     mnesia:write(PEX#pe{ref_cnt = PEX#pe.ref_cnt - 1}),
     mnesia:write(arset, ARset#set{ref_cnt = ARset#set.ref_cnt - 1}, write),
     mnesia:write(PEZ#pe{ref_cnt = PEZ#pe.ref_cnt - 1}),
@@ -484,7 +484,7 @@ delete_oblig(X, Y, Z) ->
     mnesia:write(PE#pe{ref_cnt = PE#pe.ref_cnt - 1}),
     mnesia:write(pattern, Pattern#seq{ref_cnt = Pattern#seq.ref_cnt - 1}, write),
     mnesia:write(response, Response#seq{ref_cnt = Response#seq.ref_cnt - 1}, write),
-    [Row] = mnesia:match_object(#oblig{a = X, b = Y, _ = '_'}),
+    [Row] = mnesia:match_object(#obligation{u = X, pattern = Y, response = Z, _ = '_'}),
     mnesia:delete_object(Row).
 
 -spec process_user(P :: pm:p(), PU :: [#process_user{}]) -> pm:id() | false.
@@ -548,7 +548,7 @@ elements(G, X) ->
     
 icap(G, #ua{id = X}) ->
     UAs = [UA || {ua, _} = UA <- digraph_utils:reaching([X], G)],
-    [hd(mnesia:dirty_read(assoc, UA)) || UA <- UAs].
+    [hd(mnesia:dirty_read(association, UA)) || UA <- UAs].
 
 %%%===================================================================
 %%% Tests

@@ -15,7 +15,7 @@
 	 terminate/2, code_change/3]).
 
 -export_types([id_tag/0, id/0, u/0, ua/0, o/0, oa/0, pc/0, pe/0,
-	       assign/0, assoc/0, prohib/0, oblig/0, op/0, ar/0]).
+	       assign/0, association/0, prohib/0, oblig/0, op/0, ar/0]).
 
 -type id_tag() :: u | ua | o | oa | pc | arset | atset | pattern | response.
 -type id() :: {id_tag(), term()}.
@@ -26,7 +26,7 @@
 -type pc() :: #pc{}.
 -type pe() :: u() | ua() | o() | oa() | pc().
 -type assign() :: #assign{}.
--type assoc() :: #assoc{}.
+-type association() :: #association{}.
 -type prohib() :: #prohib{}.
 -type oblig() :: #oblig{}.
 -type op() :: #op{}.
