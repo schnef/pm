@@ -22,7 +22,10 @@
 	 transaction/1
 	]).
 
--export([users/2, objects/2, elements/2, icap/2, iae/2, disj_range/3, conj_range/3]).
+-export([users/2, objects/2, elements/2, icap/2, iae/2]).
+
+%% TODO: move the following functions to the module pm_pdp.
+-export([disj_range/3, conj_range/3, check_prohibitions/5]).
 
 -export([rebuild/1]).
 
@@ -647,6 +650,69 @@ pepc(G) ->
     PEPC = [PE || {Tag, _Id} = PE <- digraph:vertices(G), Tag =/= pc],
     sets:from_list(PEPC).
 
+%% @doc The function `check_prohibitions/5' was taken, literally, from
+%% a document titled "English Prose Access Control Graph Algorithms
+%% with Complexity Analysis" by Peter Mell, dated 2016-04-12.
+check_prohibitions(G, Candidates, Type, ATIs, ATEs) when is_list(Candidates) ->
+    check_prohibitions(G, sets:from_list(Candidates), Type, ATIs, ATEs);
+check_prohibitions(G, Candidates, disjunctive, ATIs, ATEs) when is_list(ATIs), is_list(ATEs) ->
+    %% Step a: for each ati in atis, compute the union of element(ati).
+    S1 = elements_union(G, ATIs),
+    %% If any nodes in candidates are in the computed union, delete
+    %% them from candidates, i.e. subtract the collected elements from
+    %% the candidates.
+    Candidates1 = sets:subtract(Candidates, S1),
+    %% Step b: for each ate in ates, compute the intersection of
+    %% elements(ate).
+    S2 = elements_intersection(G, ATEs),
+    %% If any nodes in candidates are not in the computed
+    %% intersection, delete them from candidates. This effectively is
+    %% the same as taking the intersection of the collected set and
+    %% the candidates.
+    Candidates2 = sets:intersection(Candidates1, S2),
+    %% Step c: return remaining nodes in candidates
+    sets:to_list(Candidates2);
+check_prohibitions(G, Candidates, conjunctive, ATIs, ATEs) ->
+    %% Step a: create set called 'allowed' that is initially empty
+    Allowed = sets:new(),
+    %% For each ati in atis, compute the intersection of
+    %% elements(ati).
+    S1 = elements_intersection(G, ATIs),
+    %% If any nodes in candidates are not in the computed
+    %% intersection, add them to the allowed set and remove them from
+    %% candidates
+    S2 = sets:subtract(Candidates, S1), % nodes in candidates not in S1
+    Allowed1 = sets:union(Allowed, S2), % add them to the allowed
+    Candidates1 = sets:subtract(Candidates, S2), % remove from candidates
+    %% Step c: for each ate in ates, compute the union of
+    %% elements(ate).
+    S3 = elements_union(G, ATEs),
+    %% If any nodes in candidates are in the computed union, add them
+    %% to the allowed set
+    S4 = sets:intersection(Candidates1, S3), % nodes in candidates and in S3
+    Allowed2 = sets:union(Allowed1, S4),
+    %% Step d: return allowed set
+    sets:to_list(Allowed2).
+
+%% @doc for each `AT' in `ATs', compute the union of `elements(AT)'
+elements_union(G, ATs) ->
+    F = fun(E, Acc) ->
+		Es = elements(G, E),
+		sets:union(Acc, sets:from_list(Es))
+	end,
+    lists:foldl(F, sets:new(), ATs).
+    
+%% @doc for each `AT' in `ATs', compute the intersection of
+%% `elements(AT)'
+elements_intersection(_G, []) ->
+    sets:new();
+elements_intersection(G, [AT | Rest]) ->
+    F = fun(E, Acc) ->
+		Es = elements(G, E),
+		sets:intersection(Acc, sets:from_list(Es))
+	end,
+    lists:foldl(F, sets:from_list(elements(G, AT)), Rest).
+
 rebuild(G) ->
     mnesia:clear_table(pe),
     F = fun() ->
@@ -662,6 +728,9 @@ rebuild_children(G, P) ->
     Assigns = mnesia:select(assign, [{#assign{b = '$2', _ = '_'}, [{'=:=', '$2', {P}}], ['$_']}]), 
     [rebuild_child(G, Assign) || Assign <- Assigns].
 
+%% TODO: merge the following code with the create_xxx code
+%% above. Manipulating PE should be in one single function if possible
+%% to make code maintenance easier.
 rebuild_child(G, #assign{a = X, b = Y} = Assign) ->
     case digraph:add_vertex(G, X) of
 	{error, Reason} ->
