@@ -22,7 +22,7 @@
 	 transaction/1
 	]).
 
--export([users/2, objects/2, elements/2, icap/2, iae/2]).
+-export([users/2, objects/2, elements/2, icap/2, iae/2, disj_range/3, conj_range/3]).
 
 %%%===================================================================
 %%% API
@@ -507,32 +507,36 @@ transaction(Fun) ->
 
 -spec users(G, UA) -> [U] when
       G :: digraph:graph(),
-      UA :: pm:ua(),
+      UA :: pm:ua() | pm:id(),
       U :: pm:u().
-%% @doc The `users' function represents the mapping from a user
-%% attribute to the set of users that are contained by that user
-%% attribute `UA'.
-users(G, #ua{id = X} = _UA) -> 
-    [U || {u, _} = U <- digraph_utils:reaching([X], G)].
+%% @doc Contained Users Mapping: the `users' function represents the
+%% mapping from a user attribute to the set of users that are
+%% contained by that user attribute `UA'.
+users(G, #ua{id = X}) -> 
+    users(G, X);
+users(G, X) -> 
+    [U || {u, _} = U <- digraph_utils:reaching_neighbours([X], G)].
 
 -spec objects(G, OA) -> [O] when
       G :: digraph:graph(),
-      OA :: pm:oa(),
+      OA :: pm:oa() | pm:id(),
       O :: pm:o().
-%% @doc The `objects' function represents the mapping from a object
-%% attribute to the set of objects that are contained by that object
-%% attribute `OA'.
-objects(G, #oa{id = X} = _OA) ->
+%% @doc Reflexive and Contained Objects Mapping: the `objects'
+%% function represents the mapping from a object attribute to the set
+%% of objects that are contained by that object attribute `OA'.
+objects(G, #oa{id = X}) ->
+    objects(G, X);
+objects(G, X) ->
     [O || {o, _} = O <- digraph_utils:reaching([X], G)].
 
 -spec elements(G, PE) -> [E] when
       G :: digraph:graph(),
-      PE :: pm:pe(),
+      PE :: pm:pe() | pm:id(),
       E :: pm:pe().
-%% @doc The `elements' function represents the mapping from a given
-%% policy element `PE' to the set of policy elements that includes the
-%% policy element and all the policy elements contained by that policy
-%% element.
+%% @doc Reflexive and Contained Elements Mapping: the `elements'
+%% function represents the mapping from a given policy element `PE' to
+%% the set of policy elements that includes the policy element and all
+%% the policy elements contained by that policy element.
 elements(_G, #u{id = X}) -> 
     [X];
 elements(G, #ua{id = X}) -> 
@@ -544,7 +548,7 @@ elements(G, #oa{id = X}) ->
 elements(G, #pc{id = X}) -> 
     elements(G, X);
 elements(G, X) -> 
-    digraph_utils:reaching_neighbours([X], G).
+    digraph_utils:reaching([X], G).
 
 -spec icap(G, UA) -> [{ARset, AT}] when
       G :: digraph:graph(),
@@ -558,7 +562,7 @@ icap(G, #ua{id = X}) ->
     %% return the two fields of interest directly
     UAs = [UA || {ua, _} = UA <- digraph_utils:reaching([X], G)],
     F = fun(UA, Acc) ->
-		mnesia:dirty_read(association, UA) ++ Acc
+		mnesia:read(association, UA) ++ Acc
 	end,
     Assocs = lists:foldl(F, [], UAs),
     [{ARset, AT} || #association{arset = ARset, at = AT} <- Assocs].
@@ -582,10 +586,57 @@ iae(G, X) ->
     ATs = [AT || {Tag, _} = AT <- digraph_utils:reachable([X], G), 
 		 Tag =:= oa orelse Tag =:= o orelse Tag =:= ua],
     F = fun(AT, Acc) ->
-		mnesia:dirty_index_read(association, AT, #association.at) ++ Acc
+		mnesia:index_read(association, AT, #association.at) ++ Acc
 	end,
     Assocs = lists:foldl(F, [], ATs),
     [{UA, ARset} || #association{ua = UA, arset = ARset} <- Assocs].
+
+%% @see pm_pap:disj_range/2.
+
+%% TODO: ATIs and ATEs now can contain any kind of PE, not only
+%% ATs. It is up to the calling functions to pass in the correct
+%% data. For example, the function accepts PCs and Us as valid ATs,
+%% which is not correct.
+disj_range(G, ATIs, ATEs) ->
+    Set1 = sets:new(),
+    F1 = fun(AT, Acc) ->
+    		ATs = elements(G, AT),
+    		sets:union(Acc, sets:from_list(ATs))
+    	end,
+    T1 = lists:foldl(F1, Set1, ATIs),
+
+    PEPC = pepc(G),
+    Set2 = sets:new(),
+    F2 = fun(AT, Acc) ->
+    		 ATs = elements(G, AT),
+    		 sets:union(Acc, sets:subtract(PEPC, sets:from_list(ATs)))
+    	 end,
+    T2 = lists:foldl(F2, Set2, ATEs),
+    sets:to_list(sets:union(T1, T2)).
+
+%% @see pm_pap:conj_range/2.
+conj_range(_G, [], _ATEs) ->
+    [];
+conj_range(G, [ATI | ATIs], ATEs) ->
+    Set1 = sets:from_list(elements(G, ATI)),
+    F1 = fun(AT, Acc) ->
+		 ATs = elements(G, AT),
+		 sets:intersection(Acc, sets:from_list(ATs))
+	 end,
+    T1 = lists:foldl(F1, Set1, ATIs),
+
+    PEPC = pepc(G),
+    Set2 = PEPC,
+    F2 = fun(AT, Acc) ->
+		 ATs = elements(G, AT),
+		 sets:intersection(Acc, sets:subtract(PEPC, sets:from_list(ATs)))
+	 end,
+    T2 = lists:foldl(F2, Set2, ATEs),
+    sets:to_list(sets:intersection(T1, T2)).
+
+pepc(G) ->
+    PEPC = [PE || {Tag, _Id} = PE <- digraph:vertices(G), Tag =/= pc],
+    sets:from_list(PEPC).
 
 %%%===================================================================
 %%% Tests
@@ -595,7 +646,7 @@ iae(G, X) ->
 
 %% Tests are wrapped in a Mnesia transaction and all are aborted to
 %% revert all changes in the database. This should prevent polluting
-%% an existing database.
+%% an existing database and / or prevent tests to interfere.
 
 t(Fun) ->
     T = fun() ->

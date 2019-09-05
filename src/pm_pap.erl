@@ -35,7 +35,7 @@
 	 d_conj_uprohib/4, d_conj_pprohib/4, d_conj_uaprohib/4,
 	 d_disj_uprohib/4, d_disj_pprohib/4, d_disj_uaprohib/4]).
 
--export([users/1, objects/1, elements/1, icap/1, iae/1]).
+-export([users/1, objects/1, elements/1, icap/1, iae/1, disj_range/2, conj_range/2]).
 
 %% Server name registery API
 -export([register_p/2, unregister_p/1]).
@@ -73,7 +73,6 @@ c_ua_in_ua(#ua{} = UA1, #ua{} = UA2) ->
     gen_server:call(?SERVER, {c_ua_in_ua, UA1, UA2});
 c_ua_in_ua(UA1, UA2) ->
     {error, {badarg, {UA1, UA2}}}.
-
 
 -spec c_ua_in_pc(UA, PC) -> Result when
       UA :: pm:ua(),
@@ -615,11 +614,51 @@ objects(OA) ->
 elements(PE) ->
     gen_server:call(?SERVER, {elements, PE}).
 
+-spec icap(UA) -> [{ARset, AT}] when
+      UA :: pm:ua(),
+      ARset :: pm:id(),
+      AT :: pm:id().
+%% @doc The `icap' function returns the Inherent Capabilities of a
+%% User Attribute `UA'.
 icap(UA) ->
     gen_server:call(?SERVER, {icap, UA}).
 
+-spec iae(AT) -> [{UA, ARset}] when
+      AT :: pm:ua() | pm:o() | pm:oa(),
+      ARset :: pm:id(),
+      UA :: pm:ua().
+%% @doc The `iae' function returns the Inherent Aeabilities of a
+%% User Attribute `UA'.
 iae(AT) ->
     gen_server:call(?SERVER, {iae, AT}).
+
+-spec disj_range(ATIs, ATEs) -> [AT] when
+      ATIs :: [AT],
+      ATEs :: [AT],
+      AT :: pm:id().
+%% @doc The disjunctive range `disj_range' function represents the
+%% mapping from two constraint sets of attributes, the first `ATIs'
+%% designating policy elements for inclusion, and the second `ATEs'
+%% designating policy elements for exclusion, to a set of policy
+%% elements formed by logical disjunction of the policy elements
+%% contained within or not contained respectively within the subgraphs
+%% of the referent attributes of each constraint set.
+disj_range(ATIs, ATEs) ->
+    gen_server:call(?SERVER, {disj_range, ATIs, ATEs}).
+
+-spec conj_range(ATIs, ATEs) -> [AT] when
+      ATIs :: [AT],
+      ATEs :: [AT],
+      AT :: pm:id().
+%% @doc The conjunctive range `conj_range' function represents the
+%% mapping from two constraint sets of attributes, the first `ATIs'
+%% designating policy elements for inclusion, and the second `ATEs'
+%% designating policy elements for exclusion, to a set of policy
+%% elements formed by logical conjunction of the policy elements
+%% contained by or not contained by the attributes of each constraint
+%% set respectively.
+conj_range(ATIs, ATEs) ->
+    gen_server:call(?SERVER, {conj_range, ATIs, ATEs}).
 
 %% @doc Start server
 start_link() ->
@@ -816,6 +855,12 @@ handle_call({objects, OA}, _From, #state{g = G} = State) ->
 handle_call({elements, PE}, _From, #state{g = G} = State) ->
     Reply = pm_pip:elements(G, PE),
     {reply, Reply, State};
+%% TODO: the icap and iae functions currently use a transaction, but
+%% this is not needed if the pap is the only process to access the
+%% PIP. If however the PIP is distributed with more than one pm_pip,
+%% and Mnesia has to deal with concurrency, the transaction _is_
+%% needed. (The icap and iae functions don't make changes to the
+%% database and therefor could be implemented 'dirty'.)
 handle_call({icap, UA}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
 				pm_pip:icap(G, UA)
@@ -825,6 +870,12 @@ handle_call({iae, AT}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
 				pm_pip:iae(G, AT)
 			end),
+    {reply, Reply, State};
+handle_call({disj_range, ATIs, ATEs}, _From, #state{g = G} = State) ->
+    Reply = pm_pip:disj_range(G, ATIs, ATEs),
+    {reply, Reply, State};
+handle_call({conj_range, ATIs, ATEs}, _From, #state{g = G} = State) ->
+    Reply = pm_pip:conj_range(G, ATIs, ATEs),
     {reply, Reply, State};
 handle_call(Request, _From, State) ->
     Reply = {error, {not_implemented, Request}},
@@ -884,6 +935,12 @@ server_test_() ->
      fun server_setup/0,
      fun server_cleanup/1,
      fun tsts/1}.
+
+disj_range_test_() ->
+    {setup,
+     fun server_setup/0,
+     fun server_cleanup/1,
+     fun disj_range_tst/1}.
 
 server_setup() ->
     zuuid:start(),
@@ -956,6 +1013,14 @@ tsts(_Pids) ->
      tst_icap_iae()
     ].
 
+%% NB: Testing the disj_range and conj_range functions requires the
+%% unit test to be ran without other tests. The issue is that the
+%% digraph must only contain the elements added during the test and
+%% not from the other tests as well. Processing the `tsts' list and
+%% executing the actual tests are two distinct steps with the first
+%% making changes to the digraph which will mess-up the tests.
+disj_range_tst(_Pids) ->
+    [tst_disj_range()].
 
 
 tst_c_pc() ->
@@ -1400,10 +1465,12 @@ tst_users_objects_elements() ->
     {ok, O1} = c_o_in_oa(#o{value = "Account o1"}, Accounts),
     [?_assertEqual(lists:sort([U1#u.id, U2#u.id]), lists:sort(users(Branch_1_usr_attr))),
      ?_assertEqual([O1#o.id], objects(Branch_1_obj_attr)),
-     ?_assertEqual(lists:sort([Branch_1_usr_attr#ua.id, Branch_1_obj_attr#oa.id,
+     ?_assertEqual(lists:sort([PC#pc.id, 
+			       Branch_1_usr_attr#ua.id, Branch_1_obj_attr#oa.id,
 			       Teller#ua.id, Auditor#ua.id, U1#u.id, U2#u.id,
 			       Accounts#oa.id, O1#o.id]),
 		   lists:sort(elements(PC)))].
+
 tst_icap_iae() ->
     {ok, PC} = pm_pap:c_pc(#pc{}),
     {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC),
@@ -1431,7 +1498,43 @@ tst_icap_iae() ->
      ?_assertEqual(lists:sort([{UA1#ua.id, ARset1}, {UA2#ua.id, ARset2}]),
 		   lists:sort(iae(O1))),
      ?_assertEqual(lists:sort([{UA1#ua.id, ARset1}, {UA3#ua.id, ARset3}]),
-		   lists:sort(iae(O2)))
+		   lists:sort(iae(O2)))].
+
+tst_disj_range() ->
+    {ok, PC} = pm_pap:c_pc(#pc{}),
+    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC),
+    {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
+    {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
+    {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
+    ok = pm_pap:c_u_to_ua(U1, UA3),
+    {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
+    {ok, OA1} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC),
+    {ok, OA2} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA1),
+    {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA2),
+    {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA2),
+    [?_assertEqual([], disj_range([], [])),
+     ?_assertEqual([U1#u.id], disj_range([U1], [])),
+     ?_assertEqual(lists:sort([UA1#ua.id, UA2#ua.id, UA3#ua.id, U2#u.id,
+			       OA1#oa.id, OA2#oa.id, O1#o.id, O2#o.id]),
+		   lists:sort(disj_range([], [U1]))),
+     ?_assertEqual(lists:sort([U1#u.id,
+			       OA1#oa.id, OA2#oa.id, O1#o.id, O2#o.id]),
+		   lists:sort(disj_range([U1], [UA1]))),
+     ?_assertEqual(lists:sort([U1#u.id, U2#u.id,
+			       OA1#oa.id, OA2#oa.id, O1#o.id, O2#o.id]),
+		   lists:sort(disj_range([U1, U2], [UA1]))),
+     ?_assertEqual(lists:sort([UA1#ua.id, UA2#ua.id, UA3#ua.id, U1#u.id, U2#u.id,
+			       OA1#oa.id, OA2#oa.id, O1#o.id, O2#o.id]),
+		   lists:sort(disj_range([U1], [U1]))),
+     
+     ?_assertEqual([], conj_range([], [])),
+     ?_assertEqual([U1#u.id], conj_range([U1], [])),
+     ?_assertEqual([], conj_range([], [U1])),
+     ?_assertEqual([], conj_range([U1], [UA1])),
+     ?_assertEqual([U1#u.id], conj_range([U1], [OA1])),
+     ?_assertEqual(lists:sort([UA1#ua.id, UA2#ua.id, UA3#ua.id, U2#u.id]),
+		   lists:sort(conj_range([UA1], [U1]))),
+     ?_assertEqual([], conj_range([U1], [UA1]))
     ].
     
 -endif.
