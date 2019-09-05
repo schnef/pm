@@ -37,6 +37,8 @@
 
 -export([users/1, objects/1, elements/1, icap/1, iae/1, disj_range/2, conj_range/2]).
 
+-export([rebuild/0]).
+
 %% Server name registery API
 -export([register_p/2, unregister_p/1]).
 
@@ -660,6 +662,10 @@ disj_range(ATIs, ATEs) ->
 conj_range(ATIs, ATEs) ->
     gen_server:call(?SERVER, {conj_range, ATIs, ATEs}).
 
+rebuild() -> 
+    gen_server:call(?SERVER, rebuild).
+   
+
 %% @doc Start server
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
@@ -675,10 +681,16 @@ stop() ->
 %% @private
 init([]) ->
     G = digraph:new([acyclic, protected]),
+    pm_pip:rebuild(G),
     PU = [],
     {ok, #state{g = G, pu = PU}}.
 
 %% @private
+%% handle_call(rebuild, _From, #state{g = G} = State) ->
+%%     digraph:delete(G),
+%%     G1 = digraph:new([acyclic, protected]),
+%%     Reply = pm_pip:rebuild(G1),
+%%     {reply, Reply, State#state{g = G1}};
 handle_call({c_u_in_ua, U, UA}, _From, #state{g = G} = State) ->
     Reply = transaction(fun() ->
 				Id = pm_pip:allocate_id(u),
@@ -940,7 +952,7 @@ disj_range_test_() ->
     {setup,
      fun server_setup/0,
      fun server_cleanup/1,
-     fun disj_range_tst/1}.
+     fun disj_conj_range_tst/1}.
 
 server_setup() ->
     zuuid:start(),
@@ -1019,8 +1031,8 @@ tsts(_Pids) ->
 %% not from the other tests as well. Processing the `tsts' list and
 %% executing the actual tests are two distinct steps with the first
 %% making changes to the digraph which will mess-up the tests.
-disj_range_tst(_Pids) ->
-    [tst_disj_range()].
+disj_conj_range_tst(_Pids) ->
+    [tst_disj_conj_range()].
 
 
 tst_c_pc() ->
@@ -1500,7 +1512,7 @@ tst_icap_iae() ->
      ?_assertEqual(lists:sort([{UA1#ua.id, ARset1}, {UA3#ua.id, ARset3}]),
 		   lists:sort(iae(O2)))].
 
-tst_disj_range() ->
+tst_disj_conj_range() ->
     {ok, PC} = pm_pap:c_pc(#pc{}),
     {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC),
     {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),

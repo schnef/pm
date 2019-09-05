@@ -24,6 +24,8 @@
 
 -export([users/2, objects/2, elements/2, icap/2, iae/2, disj_range/3, conj_range/3]).
 
+-export([rebuild/1]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -597,6 +599,13 @@ iae(G, X) ->
 %% ATs. It is up to the calling functions to pass in the correct
 %% data. For example, the function accepts PCs and Us as valid ATs,
 %% which is not correct.
+%%
+%% This function and also the conj_range function are probably of only
+%% little use because they use all PE minus PC for calculating the
+%% 'excluded' attributes. In a real live system, PE may be (very)
+%% large making the function very expensive.
+%%
+%% TODO: optimize!
 disj_range(G, ATIs, ATEs) ->
     Set1 = sets:new(),
     F1 = fun(AT, Acc) ->
@@ -614,7 +623,7 @@ disj_range(G, ATIs, ATEs) ->
     T2 = lists:foldl(F2, Set2, ATEs),
     sets:to_list(sets:union(T1, T2)).
 
-%% @see pm_pap:conj_range/2.
+%% @see pm_pap:conj_range/2 and @see disj_range/2.
 conj_range(_G, [], _ATEs) ->
     [];
 conj_range(G, [ATI | ATIs], ATEs) ->
@@ -637,6 +646,42 @@ conj_range(G, [ATI | ATIs], ATEs) ->
 pepc(G) ->
     PEPC = [PE || {Tag, _Id} = PE <- digraph:vertices(G), Tag =/= pc],
     sets:from_list(PEPC).
+
+rebuild(G) ->
+    mnesia:clear_table(pe),
+    F = fun() ->
+    		Ids = mnesia:select(pc, [{#pc{id = '$1'}, [], ['$1']}]),
+    		[begin
+    		     create_x(G, Id),
+    		     rebuild_children(G, Id)
+    		 end || Id <- Ids]
+    	end,
+    transaction(F).
+
+rebuild_children(G, P) ->
+    Assigns = mnesia:select(assign, [{#assign{b = '$2', _ = '_'}, [{'=:=', '$2', {P}}], ['$_']}]), 
+    [rebuild_child(G, Assign) || Assign <- Assigns].
+
+rebuild_child(G, #assign{a = X, b = Y} = Assign) ->
+    case digraph:add_vertex(G, X) of
+	{error, Reason} ->
+	    erlang:error(Reason);
+	_X ->
+	    case mnesia:read(pe, X) of
+		[] ->
+		    mnesia:write(#pe{id = X, ref_cnt = 1});
+		[PE]->
+		    mnesia:write(PE#pe{ref_cnt = PE#pe.ref_cnt + 1})
+	    end,
+	    case digraph:add_edge(G, X, Y) of
+	    	{error, Reason} ->
+	    	    erlang:error(Reason);
+	    	Edge ->
+	    	    mnesia:delete_object(Assign),
+	    	    mnesia:write(Assign#assign{edge = Edge})
+	    end,
+	    rebuild_children(G, X)
+    end.
 
 %%%===================================================================
 %%% Tests

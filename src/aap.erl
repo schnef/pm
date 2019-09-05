@@ -6,8 +6,6 @@
 
 %% This module is used for experiments. Ignore!
 
-
-
 run() ->
     PE = sets:from_list([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
     ATIs = sets:from_list([2]),
