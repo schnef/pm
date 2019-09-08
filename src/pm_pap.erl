@@ -189,7 +189,7 @@ c_oa_to_pc(OA, PC) ->
       UA :: pm:ua(),
       ARs :: nonempty_list(pm:ar()),
       AT :: pm:ua() | pm:o() | pm:oa(),
-      Result :: ok | {error, Reason :: term()}.
+      Result :: {ok, pm:association()} | {error, Reason :: term()}.
 %% @doc create an association (ua, ars, at)
 c_assoc(UA, ARs, #ua{id = Z}) ->
     c_assoc(UA, ARs, Z);
@@ -215,7 +215,7 @@ c_assoc(UA, ARs, AT) ->
       ARs :: nonempty_list(pm:ar()),
       ATIs :: [pm:ua()] | [pm:o()] | [pm:oa()],
       ATEs :: [pm:ua()] | [pm:o()] | [pm:oa()],
-      Result :: ok | {error, Reason :: term()}.
+      Result :: {ok, #u_deny_conj{}} | {error, Reason :: term()}.
 %% @doc create a conjunctive user prohibition
 c_conj_uprohib(#u{id = W}, ARs, ATIs, ATEs) ->
     case c_prohib(W, ARs, ATIs, ATEs, u_deny_conj) of
@@ -231,7 +231,7 @@ c_conj_uprohib(U, ARs, ATIs, ATEs) ->
       ARs :: nonempty_list(pm:ar()),
       ATIs :: [pm:ua()] | [pm:o()] | [pm:oa()],
       ATEs :: [pm:ua()] | [pm:o()] | [pm:oa()],
-      Result :: ok | {error, Reason :: term()}.
+      Result :: {ok, #p_deny_conj{}} | {error, Reason :: term()}.
 %% @doc create a conjunctive process prohibition
 %% TODO: isn't the is_pid(P) a little to defensive?
 c_conj_pprohib(P, ARs, ATIs, ATEs) when is_pid(P) ->
@@ -248,7 +248,7 @@ c_conj_pprohib(P, ARs, ATIs, ATEs) ->
       ARs :: nonempty_list(pm:ar()),
       ATIs :: [pm:ua()] | [pm:o()] | [pm:oa()],
       ATEs :: [pm:ua()] | [pm:o()] | [pm:oa()],
-      Result :: ok | {error, Reason :: term()}.
+      Result :: {ok, #ua_deny_conj{}} | {error, Reason :: term()}.
 %% @doc create a conjunctive user attribute prohibition
 c_conj_uaprohib(#ua{id = W}, ARs, ATIs, ATEs) ->
     case c_prohib(W, ARs, ATIs, ATEs, ua_deny_conj) of
@@ -264,7 +264,7 @@ c_conj_uaprohib(UA, ARs, ATIs, ATEs) ->
       ARs :: nonempty_list(pm:ar()),
       ATIs :: [pm:ua()] | [pm:o()] | [pm:oa()],
       ATEs :: [pm:ua()] | [pm:o()] | [pm:oa()],
-      Result :: ok | {error, Reason :: term()}.
+      Result :: {ok, #u_deny_disj{}} | {error, Reason :: term()}.
 %% @doc create a disjunctive user prohibition
 c_disj_uprohib(#u{id = W}, ARs, ATIs, ATEs) ->
     case c_prohib(W, ARs, ATIs, ATEs, u_deny_disj) of
@@ -280,7 +280,7 @@ c_disj_uprohib(U, ARs, ATIs, ATEs) ->
       ARs :: nonempty_list(pm:ar()),
       ATIs :: [pm:ua()] | [pm:o()] | [pm:oa()],
       ATEs :: [pm:ua()] | [pm:o()] | [pm:oa()],
-      Result :: ok | {error, Reason :: term()}.
+      Result :: {ok, #p_deny_disj{}} | {error, Reason :: term()}.
 %% @doc create a disjunctive process prohibition
 %% TODO: isn't the is_pid(P) a little to defensive?
 c_disj_pprohib(P, ARs, ATIs, ATEs) when is_pid(P) ->
@@ -297,7 +297,7 @@ c_disj_pprohib(P, ARs, ATIs, ATEs) ->
       ARs :: nonempty_list(pm:ar()),
       ATIs :: [pm:ua()] | [pm:o()] | [pm:oa()],
       ATEs :: [pm:ua()] | [pm:o()] | [pm:oa()],
-      Result :: ok | {error, Reason :: term()}.
+      Result :: {ok, #ua_deny_disj{}} | {error, Reason :: term()}.
 %% @doc create a disjunctive user attribute prohibition
 c_disj_uaprohib(#ua{id = W}, ARs, ATIs, ATEs) ->
     case c_prohib(W, ARs, ATIs, ATEs, ua_deny_disj) of
@@ -361,7 +361,7 @@ eval_response(P, Responses) ->
       P :: pid(),
       Patterns :: nonempty_list(pm:pattern()),
       Responses :: nonempty_list(pm:response()),
-      Result :: ok | {error, Reason :: term()}.
+      Result :: {ok, pm:obligation()} | {error, Reason :: term()}.
 %% @doc create an obligation
 c_oblig(P, Patterns, Responses) when is_pid(P), Patterns =/= [], Responses =/= [] ->
     Pattern_ids = [(fun(#pattern{id = P_id}) -> P_id end)(Pattern) || Pattern <- Patterns],
@@ -1128,6 +1128,7 @@ tst_c_oblig() ->
     [?_assertMatch({ok, _}, pm_pap:c_oblig(P, Patterns, Responses)),
      ?_assertMatch({error, _Reason}, pm_pap:c_oblig(Q, Patterns, Responses))].
 
+-dialyzer({nowarn_function, tst_c_conj_uprohib/0}).
 tst_c_conj_uprohib() ->
     {ok, PC} = pm_pap:c_pc(#pc{value = "a pc"}),
     {ok, UA} = pm_pap:c_ua_in_pc(#ua{value = "an attribute"}, PC),
@@ -1186,6 +1187,7 @@ tst_c_conj_uaprohib() ->
      ?_assertMatch({error, {badarg, _}}, pm_pap:c_conj_uaprohib(U, ARs, [OA1], [OA2]))
     ].
 
+-dialyzer({nowarn_function, tst_c_disj_uprohib/0}).
 tst_c_disj_uprohib() ->
     {ok, PC} = pm_pap:c_pc(#pc{value = "a pc"}),
     {ok, UA} = pm_pap:c_ua_in_pc(#ua{value = "an attribute"}, PC),

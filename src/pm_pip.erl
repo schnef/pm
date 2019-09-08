@@ -650,6 +650,14 @@ pepc(G) ->
     PEPC = [PE || {Tag, _Id} = PE <- digraph:vertices(G), Tag =/= pc],
     sets:from_list(PEPC).
 
+%% TDOO: improve specs by giving a more specific type for Candidates,
+%% ATIs etc.
+-spec check_prohibitions(G, Candidates, Type, ATIs, ATEs) -> [pc:id()] when
+      G :: digraph:graph(),
+      Candidates :: sets:set() | [pm:id()],
+      Type :: disjunctive | conjunctive,
+      ATIs :: [pm:id()],
+      ATEs :: [pm:id()].
 %% @doc The function `check_prohibitions/5' was taken, literally, from
 %% a document titled "English Prose Access Control Graph Algorithms
 %% with Complexity Analysis" by Peter Mell, dated 2016-04-12.
@@ -1174,7 +1182,7 @@ tst_delete_response() ->
 tst_allocate_id() ->
     Id0 = allocate_id(),
     Id1 = allocate_id(),
-    Id2 = allocate_id(),
+    Id2 = allocate_id(t),
     Id3 = allocate_id(t),
     Id4 = allocate_id(t, [a, b, c]),
     Id5 = allocate_id(t, [a, b, c]),
