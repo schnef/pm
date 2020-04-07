@@ -6,6 +6,25 @@
 
 %% This module is used for experiments. Ignore!
 
+powerset2(Lst) ->
+    N = length(Lst),
+    Max = trunc(math:pow(2, N)),
+    powerset2(Lst, 0, N, Max).
+
+powerset2(_, Max, _, Max) ->
+    done;
+powerset2(Lst, I, N, Max) -> % when I < Max ->
+    %% The elements of the set are represented as bits
+    Subset = [lists:nth(Pos + 1, Lst)
+	      || Pos <- lists:seq(0, N - 1),
+		 I band (1 bsl Pos) =/= 0],
+    %% perform some actions on particular subset
+    io:format("Subset ~p~n", [Subset]),
+    powerset2(Lst, I + 1, N, Max).
+%% powerset2(_, _, _, _) ->
+%%     done.
+
+
 run() ->
     PE = sets:from_list([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
     ATIs = sets:from_list([2]),
@@ -33,21 +52,22 @@ run2() ->
     OA2 = digraph:add_vertex(G),
     O2 = digraph:add_vertex(G),
     
-    digraph:add_edge(G, PC, UA11),
-    digraph:add_edge(G, UA11, UA1),
-    digraph:add_edge(G, UA1, U1),
-    digraph:add_edge(G, PC, UA12),
-    digraph:add_edge(G, UA12, UA2),
-    digraph:add_edge(G, UA2, U2),
+    digraph:add_edge(G, U1, UA1),
+    digraph:add_edge(G, UA1, UA11),
+    digraph:add_edge(G, UA11, PC),
+    digraph:add_edge(G, U2, UA2),
+    digraph:add_edge(G, UA2, UA12),
+    digraph:add_edge(G, UA12, PC),
 
-    digraph:add_edge(G, PC, OA11),
-    digraph:add_edge(G, OA11, OA1),
-    digraph:add_edge(G, OA1, O1),
-    digraph:add_edge(G, PC, OA12),
-    digraph:add_edge(G, OA12, OA2),
-    digraph:add_edge(G, OA2, O2),
+    digraph:add_edge(G, O1, OA1),
+    digraph:add_edge(G, OA1, OA11),
+    digraph:add_edge(G, OA11, PC),
+    digraph:add_edge(G, O2, OA2),
+    digraph:add_edge(G, OA2, OA12),
+    digraph:add_edge(G, OA12, PC),
+    
+    digraph_utils:reachable_neighbours([U1], G).
 
-    sofs:digraph_to_family(G).
 
 pe() ->
     Ext = [{pc, [ua11, ua12, oa11, oa12]},
@@ -96,14 +116,14 @@ conj_range() ->
     sofs:intersection(ATIs, sofs:difference(PE, ATEs)).
 
 g() ->
-    {ok, PC} = pm_pap:c_pc(#pc{}),
-    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC),
+    {ok, PC1} = pm_pap:c_pc(#pc{value="pc1"}),
+    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC1),
     {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
     {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
     {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
     ok = pm_pap:c_u_to_ua(U1, UA3),
     {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
-    {ok, OA21} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC),
+    {ok, OA21} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC1),
     {ok, OA20} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA21),
     {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA20),
     {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA20),
@@ -112,8 +132,18 @@ g() ->
     {ok, _Assoc2} = pm_pap:c_assoc(UA2, [#ar{id = 'w'}], O1),
     {ok, _Assoc3} = pm_pap:c_assoc(UA3, [#ar{id = 'w'}], O2),
 
-    #{pc => PC, ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
-      oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2}.
+    {ok, PC2} = pm_pap:c_pc(#pc{value="pc2"}),
+    {ok, UA4} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC2),
+    {ok, UA5} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA4),
+    {ok, UA6} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA4),
+    ok = pm_pap:c_u_to_ua(U1, UA5),
+    ok = pm_pap:c_u_to_ua(U2, UA6),
+
+    {ok, _Assoc4} = pm_pap:c_assoc(UA5, [#ar{id = 'c-u'}], O2),
+
+    #{pc1 => PC1, ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
+      oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2,
+      pc2 => PC2, ua4 => UA4, ua5 => UA5, ua6 => UA6}.
 
 %% =============================================================================
 %% Digraph
@@ -232,7 +262,7 @@ print_path(L) ->
 		  lists:sublist(L,length(L)-1)),
     io:format("~s~n",[lists:last(L)]).
 
-add_dependency(_G,_L,_L) ->
+add_dependency(_G,L,L) ->
     ok;
 add_dependency(G,L,D) ->
     digraph:add_vertex(G,D), % noop if dependency already added

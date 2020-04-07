@@ -1,5 +1,7 @@
-TODO: Maybe use a digraph per pc to keep the digraphs small and boost
-search efficiency in pm_pdp?
+TODO: Maybe use a digraph per pc / u(a) and o(a) to keep the digraphs
+small and boost search efficiency in pm_pdp?  This would also allow
+for searching u's and o's directly in the ETS tables without any graph
+stuff.
 
 TODO: Something with resgistering processes the erlang way.
 

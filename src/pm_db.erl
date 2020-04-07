@@ -5,13 +5,20 @@
 -include("pm.hrl").
 
 %% API
--export([start/0, install/1]).
+-export([start/0, install/0, install/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
+install() ->
+    install([node()]).
+
 install(Nodes) ->
+    rpc:multicall(Nodes, application, stop, [mnesia]),
+    io:format("Delete old schema, if any~n"),
+    mnesia:delete_schema(Nodes),
+    io:format("Create new schema~n"),
     ok = mnesia:create_schema(Nodes),
     rpc:multicall(Nodes, application, start, [mnesia]),
     create_tables(),

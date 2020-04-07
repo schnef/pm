@@ -1,6 +1,6 @@
 {application, pm,
  [{description, "The Policy Machine: an access control framework."},
-  {vsn, "0.1.0"},
+  {vsn, "0.2.0"},
   {registered, []},
   {mod, { pm_app, []}},
   {applications,
@@ -8,9 +8,6 @@
     stdlib,
     mnesia,
     crypto,
-    %% asn1,
-    %% public_key,
-    %% ssl,
     zuuid
    ]},
   {env,[]},

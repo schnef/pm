@@ -1,6 +1,6 @@
--module(pm_rap).
-
 %%% @doc
+
+-module(pm_rap).
 
 -behaviour(gen_server).
 
@@ -45,7 +45,7 @@ start_link() ->
 
 %% @private
 init([]) ->
-    ok = file:set_cwd(?ROOT_DIR),
+    %% ok = file:set_cwd(?ROOT_DIR),
     {ok, #state{root_dir = ?ROOT_DIR}}.
 
 %% @private

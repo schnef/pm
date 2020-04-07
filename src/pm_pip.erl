@@ -1,6 +1,6 @@
--module(pm_pip).
-
 %%% @doc
+
+-module(pm_pip).
 
 -include_lib("eunit/include/eunit.hrl").
 -include("pm.hrl").
@@ -25,7 +25,12 @@
 -export([users/2, objects/2, elements/2, icap/2, iae/2]).
 
 %% TODO: move the following functions to the module pm_pdp.
--export([disj_range/3, conj_range/3, check_prohibitions/5]).
+-export([disj_range/3, conj_range/3]).
+
+-export([find_border_oa_priv_ANSI/2, find_border_oa_priv_RESTRICTED/2,
+	 calc_priv/3, access/4, show_accessible_objects/2, vis_initial_oa_ANSI/2,
+	 vis_initial_oa_RESTRICTED/2, predecessor_oa/3, successor_oa/3,
+	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
 -export([rebuild/1]).
 
@@ -510,6 +515,48 @@ transaction(Fun) ->
 	    {error, Reason}
     end.
 
+%% TODO: review use of transactions. Should we go 'dirty' because this
+%% function is called by a single pm_pip only or will we use more than
+%% one pm_pip and is Mnesia distributed?
+rebuild(G) ->
+    mnesia:clear_table(pe),
+    F = fun() ->
+    		Ids = mnesia:select(pc, [{#pc{id = '$1'}, [], ['$1']}]),
+    		[begin
+    		     create_x(G, Id),
+    		     rebuild_children(G, Id)
+    		 end || Id <- Ids]
+    	end,
+    transaction(F).
+
+rebuild_children(G, P) ->
+    Assigns = mnesia:select(assign, [{#assign{b = '$2', _ = '_'}, [{'=:=', '$2', {P}}], ['$_']}]), 
+    [rebuild_child(G, Assign) || Assign <- Assigns].
+
+%% TODO: merge the following code with the create_xxx code
+%% above. Manipulating PE should be in one single function if possible
+%% to make code maintenance easier.
+rebuild_child(G, #assign{a = X, b = Y} = Assign) ->
+    case digraph:add_vertex(G, X) of
+	{error, Reason} ->
+	    erlang:error(Reason);
+	_X ->
+	    case mnesia:read(pe, X) of
+		[] ->
+		    mnesia:write(#pe{id = X, ref_cnt = 1});
+		[PE]->
+		    mnesia:write(PE#pe{ref_cnt = PE#pe.ref_cnt + 1})
+	    end,
+	    case digraph:add_edge(G, X, Y) of
+	    	{error, Reason} ->
+	    	    erlang:error(Reason);
+	    	Edge ->
+	    	    mnesia:delete_object(Assign),
+	    	    mnesia:write(Assign#assign{edge = Edge})
+	    end,
+	    rebuild_children(G, X)
+    end.
+
 -spec users(G, UA) -> [U] when
       G :: digraph:graph(),
       UA :: pm:ua() | pm:id(),
@@ -598,6 +645,9 @@ iae(G, X) ->
 
 %% @see pm_pap:disj_range/2.
 
+%% @doc disjunctive range function implementation following the specs
+%% in par. 3.4 p25,
+%%
 %% TODO: ATIs and ATEs now can contain any kind of PE, not only
 %% ATs. It is up to the calling functions to pass in the correct
 %% data. For example, the function accepts PCs and Us as valid ATs,
@@ -607,8 +657,6 @@ iae(G, X) ->
 %% little use because they use all PE minus PC for calculating the
 %% 'excluded' attributes. In a real live system, PE may be (very)
 %% large making the function very expensive.
-%%
-%% TODO: optimize!
 disj_range(G, ATIs, ATEs) ->
     Set1 = sets:new(),
     F1 = fun(AT, Acc) ->
@@ -626,6 +674,9 @@ disj_range(G, ATIs, ATEs) ->
     T2 = lists:foldl(F2, Set2, ATEs),
     sets:to_list(sets:union(T1, T2)).
 
+%% @doc conjunctive range function implementation following the specs
+%% in par. 3.4 p25,
+%%
 %% @see pm_pap:conj_range/2 and @see disj_range/2.
 conj_range(_G, [], _ATEs) ->
     [];
@@ -649,6 +700,169 @@ conj_range(G, [ATI | ATIs], ATEs) ->
 pepc(G) ->
     PEPC = [PE || {Tag, _Id} = PE <- digraph:vertices(G), Tag =/= pc],
     sets:from_list(PEPC).
+
+%% =============================================================================
+%% The following functions are taken from the document "English Prose
+%% Access Control Graph Algorithms with Complexity Analysis" by Peter
+%% Mell.
+%% =============================================================================
+
+-spec find_border_oa_priv_ANSI(G, U_id) -> [{AT_id, [{AR_id, PC_id}]}] when
+      G :: digraph:graph(),
+      U_id :: pm:id(),
+      AT_id :: pm:id(),
+      AR_id :: pm:id(),
+      PC_id :: pm:id().
+%% @doc This function returns all oa nodes that are successors of ua
+%% nodes (for ua nodes reachable from u). THIS FOLLOWS THE ANSI
+%% PRIVILEGE PM SPECIFICATION. It labels each returned node with the
+%% reachable PC nodes paired with the access rights conferred by the
+%% ua->oa edges.
+find_border_oa_priv_ANSI(G, U) ->
+    %% Search from u to find set of ua nodes. Whether the
+    %% reachable_neighbours/2 uses a BFS (breath first search) is
+    %% unknown. It does however return all elements in the graph that
+    %% have a path of length one or more from U. U is not included in
+    %% the returned list.
+    UAs = [UA || {ua, _} = UA <- digraph_utils:reachable_neighbours([U], G)],
+    %% We are looking for UAs.that have ua->oa edges, i.e. lookup all
+    %% associations for this UA
+    F1 = fun(UA, Acc) ->
+    		mnesia:dirty_read(association, UA) ++ Acc
+	 end,
+    Assocs = lists:foldl(F1, [], UAs),
+    %% For each edge, label the oa node with the access rights
+    %% conferred by the edge. At this point, we only use the ids of
+    %% the ARsets and not the content of the sets yet.
+    F2 = fun(#association{at = Id, arset = ARset}, Acc) ->
+    		 case lists:keytake(Id, 1, Acc) of
+    		     {value, {_Id, ARsets}, Acc1} ->
+    			 [{Id, lists:merge(ARsets, [ARset])} | Acc1];
+    		     false ->
+    			 [{Id, [ARset]} | Acc]
+    		 end
+    	 end,
+    L = lists:foldl(F2, [], Assocs),
+    %% Pair each access right with each reached PC node to create
+    %% access right, PC node pairings
+    F3 = fun({Id, ARsets}, Acc) ->
+		 PCs1 = [PC || {pc, _} = PC <- digraph_utils:reachable_neighbours([Id], G)],
+		 %% TODO: can the same PC turn up more than once? Is the usort required?
+		 PCs2= lists:usort(PCs1),
+		 ARs = sets:to_list(merge_arsets(ARsets)),
+    		 [{Id, [{AR, PC} || AR <- ARs, PC <- PCs2]} | Acc]
+    	 end,
+    %% Return the set of reachable oa nodes with their respective
+    %% access right, PC node pairings
+    lists:foldl(F3, [], L).
+
+-spec find_border_oa_priv_RESTRICTED(G, U_id) -> [{AT_id, [{AR_id, PC_id}]}] when
+      G :: digraph:graph(),
+      U_id :: pm:id(),
+      AT_id :: pm:id(),
+      AR_id :: pm:id(),
+      PC_id :: pm:id().
+%% @doc This returns all oa nodes that are successors of ua nodes (for
+%% ua nodes reachable from u). THIS FOLLOWS THE NIST RESTRICTED
+%% VERSION OF THE ANSI PM PRIVILEGE SPECIFICATION. It labels each
+%% returned node with the access right, PC node pairings of the
+%% predecessor ua nodes filtered to include only pairs where the PC
+%% nodes are reachable from the respective oa node.
+find_border_oa_priv_RESTRICTED(G, U) ->
+    %% Search from u to find set of ua nodes...
+    UAs = [UA || {ua, _} = UA <- digraph_utils:reachable_neighbours([U], G)],
+    %% ..that have ua->oa edges
+    F1 = fun(UA, Acc) ->
+    		mnesia:dirty_read(association, UA) ++ Acc
+	 end,
+    Assocs = lists:foldl(F1, [], UAs),
+    %% For each discovered ua node, x, execute find_pc_set(x) to find applicable set of PC nodes
+    F2 = fun(#association{ua = UA, at = Id, arset = ARset}, Acc) ->
+    		 case lists:keytake(Id, 1, Acc) of
+    		     {value, {_Id, ARsets, PCs}, Acc1} ->
+    			 [{Id, lists:merge(ARsets, [ARset]), PCs} | Acc1];
+    		     false ->
+			 PCs = [PC || {pc, _} = PC <- digraph_utils:reachable_neighbours([UA], G)],
+    			 [{Id, [ARset], PCs} | Acc]
+    		 end
+    	 end,
+    L = lists:foldl(F2, [], Assocs).
+    %% For each discovered ua node, traverse all ua->oa edges. For
+    %% each edge, label the oa node with the access rights conferred
+    %% by the edge as well as the applicable PCs associated with the
+    %% predecessor ua node (creating access right, PC node
+    %% pairings). An oa node may end up with multiple access right, PC
+    %% node pairs (consolidate duplicates).
+    
+merge_arsets([ARset | ARsets]) ->
+    [#set{value = Value}] = mnesia:dirty_read(arset, ARset),
+    merge_arsets(ARsets, Value).
+
+merge_arsets([], Acc) ->
+    Acc;
+merge_arsets([ARset | ARsets], Acc) ->
+    [#set{value = Value}] = mnesia:dirty_read(arset, ARset),
+    Acc1 = sets:union(Value, Acc),
+    merge_arsets(ARsets, Acc1).
+    
+%% @doc This function returns all privileges that u has on oa
+calc_priv(G, U ,OA) ->
+    [].
+
+%% @doc This function determines whether or not u has privilege op on o.
+access(G, U, Op, O) ->
+    [].
+
+%% @doc This function finds the set of objects accessible to u. This
+%% would be used, for example, if the user wanted to do a keyword
+%% search on all accessible object.
+show_accessible_objects(G, U) ->
+    [].
+
+%% @doc Returns the initial set of oa nodes to display when a user
+%% wants to explore their files (and use the access graph structure as
+%% a default way to explore them). THIS FOLLOWS THE ANSI PRIVILEGE PM
+%% SPECIFICATION.
+vis_initial_oa_ANSI(G, U) ->
+    [].
+
+%% @doc Returns the initial set of oa nodes to display when a user
+%% wants to explore their files (and use the access graph structure as
+%% a default way to explore them). THIS FOLLOWS THE NIST RESTRICTED
+%% VERSION OF THE ANSI PM PRIVILEGE SPECIFICATION.
+vis_initial_oa_RESTRICTED(G, U) ->
+    [].
+
+%% @doc This returns the next hierarchical level of oa nodes to
+%% display given a user and a target object attribute (using the
+%% access graph structure as a default way to explore the file
+%% structure). Note: The oa input parameter is the entry that user, u,
+%% clicked. We assume that u has the privilege to see oa in the
+%% directory tree if this method is invoked.
+predecessor_oa(G, U ,OA) ->
+    [].
+
+%% @doc This returns the set of valid parent nodes for oa given that
+%% the user is u.
+successor_oa(G, U, OA) ->
+    [].
+
+%% @doc This returns the set of nodes that are accessible by u but not
+%% reachable through the visualization interface because one or more
+%% of the intervening object attribute nodes are not accessible. This
+%% is not expected to be a normal occurrence (and does not occur in
+%% any of our current example graphs).
+find_orphan_objects(G, U) ->
+    [].
+
+%% @doc This returns the set of descendants for node ua. Note, ua may
+%% actual be a user instead of a user attribute.
+show_ua(G, UA) ->
+    [].
+
+
+
+
 
 %% TDOO: improve specs by giving a more specific type for Candidates,
 %% ATIs etc.
@@ -720,45 +934,6 @@ elements_intersection(G, [AT | Rest]) ->
 		sets:intersection(Acc, sets:from_list(Es))
 	end,
     lists:foldl(F, sets:from_list(elements(G, AT)), Rest).
-
-rebuild(G) ->
-    mnesia:clear_table(pe),
-    F = fun() ->
-    		Ids = mnesia:select(pc, [{#pc{id = '$1'}, [], ['$1']}]),
-    		[begin
-    		     create_x(G, Id),
-    		     rebuild_children(G, Id)
-    		 end || Id <- Ids]
-    	end,
-    transaction(F).
-
-rebuild_children(G, P) ->
-    Assigns = mnesia:select(assign, [{#assign{b = '$2', _ = '_'}, [{'=:=', '$2', {P}}], ['$_']}]), 
-    [rebuild_child(G, Assign) || Assign <- Assigns].
-
-%% TODO: merge the following code with the create_xxx code
-%% above. Manipulating PE should be in one single function if possible
-%% to make code maintenance easier.
-rebuild_child(G, #assign{a = X, b = Y} = Assign) ->
-    case digraph:add_vertex(G, X) of
-	{error, Reason} ->
-	    erlang:error(Reason);
-	_X ->
-	    case mnesia:read(pe, X) of
-		[] ->
-		    mnesia:write(#pe{id = X, ref_cnt = 1});
-		[PE]->
-		    mnesia:write(PE#pe{ref_cnt = PE#pe.ref_cnt + 1})
-	    end,
-	    case digraph:add_edge(G, X, Y) of
-	    	{error, Reason} ->
-	    	    erlang:error(Reason);
-	    	Edge ->
-	    	    mnesia:delete_object(Assign),
-	    	    mnesia:write(Assign#assign{edge = Edge})
-	    end,
-	    rebuild_children(G, X)
-    end.
 
 %%%===================================================================
 %%% Tests

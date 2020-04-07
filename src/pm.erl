@@ -1,6 +1,6 @@
--module(pm).
-
 %%% @doc
+
+-module(pm).
 
 -behaviour(gen_server).
 

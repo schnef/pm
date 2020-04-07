@@ -1,5 +1,3 @@
--module(pm_pdp).
-
 %%% @doc The PDP is implemented as a gen_server since we have to
 %%% serialize the decision making process.
 
@@ -9,6 +7,8 @@
 %% to oa and use that value to select the table for looking up the
 %% attributes. Maybe, the type should be set when the prohibition is
 %% defined in the PIP.
+
+-module(pm_pdp).
 
 -behaviour(gen_server).
 

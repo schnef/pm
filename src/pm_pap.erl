@@ -1,5 +1,3 @@
--module(pm_pap).
-
 %%% @doc We mainly use a server here to make access
 %%% sequential. Multiple sources of administrative commands should not
 %%% interfere.
@@ -15,6 +13,8 @@
 %% errors are caught in the API and others are returned by the server,
 %% making the error a different type. See the tests for prohibitions
 %% for an example.
+
+-module(pm_pap).
 
 -behaviour(gen_server).
 
@@ -310,10 +310,10 @@ c_disj_uaprohib(UA, ARs, ATIs, ATEs) ->
     {error, {badarg, {UA, ARs, ATIs, ATEs}}}.
 
 %% @private
-c_prohib(_W, [], _ATIs, _ATEs, _Prohib) ->
-    {error, badvalue};
-c_prohib(_W, _ARs, [], [], _Prohib) ->
-    {error, badvalue};
+c_prohib(W, [], ATIs, ATEs, _Prohib) ->
+    {error, {badarg, {W, [], ATIs, ATEs}}};
+c_prohib(W, ARs, [], [], _Prohib) ->
+    {error, {badarg, {W, ARs, [], []}}};
 c_prohib(W, [#ar{} | _] = ARs, ATIs, ATEs, Prohib) ->
     AR_ids = [(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs],
     c_prohib(W, AR_ids, ATIs, ATEs, Prohib);
@@ -925,8 +925,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
-%% @private @doc Most PAP calls are transactions which make changes to
-%% the database. If something goes wrong, all changes to the database
+%% @private 
+
+%% @doc Most PAP calls are transactions which make changes to the
+%% database. If something goes wrong, all changes to the database
 %% should be rolled back.
 
 %% TODO: The Mnesia database is rolled back but changes to the digraph
@@ -1148,8 +1150,8 @@ tst_c_conj_uprohib() ->
      ?_assertMatch({ok, _}, pm_pap:c_conj_uprohib(U, ARs, [UA1], [UA2])),
      ?_assertMatch({ok, _}, pm_pap:c_conj_uprohib(U, ARs, [UA1], [])),
      ?_assertMatch({ok, _}, pm_pap:c_conj_uprohib(U, ARs, [], [UA2])),
-     ?_assertMatch({error, badvalue}, pm_pap:c_conj_uprohib(U, [], [OA1], [OA2])),
-     ?_assertMatch({error, badvalue}, pm_pap:c_conj_uprohib(U, ARs, [], [])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_conj_uprohib(U, [], [OA1], [OA2])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_conj_uprohib(U, ARs, [], [])),
      ?_assertMatch({error, {badarg, _}}, pm_pap:c_conj_uprohib(UA, ARs, [OA1], [OA2])),
      ?_assertError(function_clause, pm_pap:c_conj_uprohib(U, ARs, [OA1], [UA2])),
      ?_assertError(function_clause, pm_pap:c_conj_uprohib(U, ARs, [UA1, OA1], [UA2])),
@@ -1207,8 +1209,8 @@ tst_c_disj_uprohib() ->
      ?_assertMatch({ok, _}, pm_pap:c_disj_uprohib(U, ARs, [UA1], [UA2])),
      ?_assertMatch({ok, _}, pm_pap:c_disj_uprohib(U, ARs, [UA1], [])),
      ?_assertMatch({ok, _}, pm_pap:c_disj_uprohib(U, ARs, [], [UA2])),
-     ?_assertMatch({error, badvalue}, pm_pap:c_disj_uprohib(U, [], [OA1], [OA2])),
-     ?_assertMatch({error, badvalue}, pm_pap:c_disj_uprohib(U, ARs, [], [])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_disj_uprohib(U, [], [OA1], [OA2])),
+     ?_assertMatch({error, {badarg, _}}, pm_pap:c_disj_uprohib(U, ARs, [], [])),
      ?_assertMatch({error, {badarg, _}}, pm_pap:c_disj_uprohib(UA, ARs, [OA1], [OA2])),
      ?_assertError(function_clause, pm_pap:c_disj_uprohib(U, ARs, [OA1], [UA2])),
      ?_assertError(function_clause, pm_pap:c_disj_uprohib(U, ARs, [UA1, OA1], [UA2])),
