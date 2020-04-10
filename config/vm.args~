@@ -1,0 +1,6 @@
+-sname rtps
+
+-setcookie rtps_cookie
+
++K true
++A30

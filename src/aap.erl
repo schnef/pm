@@ -66,7 +66,7 @@ run2() ->
     digraph:add_edge(G, OA2, OA12),
     digraph:add_edge(G, OA12, PC),
     
-    digraph_utils:reachable_neighbours([U1], G).
+    digraph_utils:topsort(G).
 
 
 pe() ->
@@ -121,7 +121,7 @@ g() ->
     {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
     {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
     {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
-    ok = pm_pap:c_u_to_ua(U1, UA3),
+    %% ok = pm_pap:c_u_to_ua(U1, UA3),
     {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
     {ok, OA21} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC1),
     {ok, OA20} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA21),
@@ -129,21 +129,28 @@ g() ->
     {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA20),
 
     {ok, _Assoc1} = pm_pap:c_assoc(UA1, [#ar{id = 'r'}], OA21),
-    {ok, _Assoc2} = pm_pap:c_assoc(UA2, [#ar{id = 'w'}], O1),
+    %% {ok, _Assoc2} = pm_pap:c_assoc(UA2, [#ar{id = 'w'}], O1),
     {ok, _Assoc3} = pm_pap:c_assoc(UA3, [#ar{id = 'w'}], O2),
 
-    {ok, PC2} = pm_pap:c_pc(#pc{value="pc2"}),
-    {ok, UA4} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC2),
-    {ok, UA5} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA4),
-    {ok, UA6} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA4),
-    ok = pm_pap:c_u_to_ua(U1, UA5),
-    ok = pm_pap:c_u_to_ua(U2, UA6),
+    %% {ok, PC2} = pm_pap:c_pc(#pc{value="pc2"}),
+    %% {ok, UA4} =  pm_pap:c_ua_in_pc(#ua{value="ua4"}, PC2),
+    %% {ok, UA5} =  pm_pap:c_ua_in_ua(#ua{value="ua5"}, UA4),
+    %% {ok, UA6} =  pm_pap:c_ua_in_ua(#ua{value="ua6"}, UA4),
+    %% ok = pm_pap:c_u_to_ua(U1, UA5),
+    %% ok = pm_pap:c_u_to_ua(U2, UA6),
 
-    {ok, _Assoc4} = pm_pap:c_assoc(UA5, [#ar{id = 'c-u'}], O2),
+    %% {ok, PC3} = pm_pap:c_pc(#pc{}),
+    %% {ok, UA7} =  pm_pap:c_ua_in_pc(#ua{}, PC3),
+    %% {ok, UA8} =  pm_pap:c_ua_in_ua(#ua{}, UA7),
+    %% {ok, UA9} =  pm_pap:c_ua_in_ua(#ua{}, UA8),
+    %% {ok, U3} =  pm_pap:c_u_in_ua(#u{}, UA9),
+
+    %% {ok, _Assoc4} = pm_pap:c_assoc(UA5, [#ar{id = 'c-u'}], O2),
 
     #{pc1 => PC1, ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
-      oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2,
-      pc2 => PC2, ua4 => UA4, ua5 => UA5, ua6 => UA6}.
+      oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2
+      %% pc2 => PC2, ua4 => UA4, ua5 => UA5, ua6 => UA6
+     }.
 
 %% =============================================================================
 %% Digraph
