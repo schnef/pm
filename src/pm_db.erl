@@ -5,7 +5,7 @@
 -include("pm.hrl").
 
 %% API
--export([start/0, install/0, install/1]).
+-export([start/0, install/0, install/1, clear/0]).
 
 %%%===================================================================
 %%% API
@@ -25,13 +25,19 @@ install(Nodes) ->
     init_tables(),
     rpc:multicall(Nodes, application, stop, [mnesia]).
 
+tables() ->
+    [pe, u, ua, o, oa, pc, assign, association, 
+     u_deny_conj, p_deny_conj, ua_deny_conj,
+     u_deny_disj, p_deny_disj, ua_deny_disj, 
+     obligation, ar, aop, rop, arset, atiset, ateset,
+     pattern, response].
+
+clear() ->
+    [mnesia:transaction(mnesia:clear_table(Table)) || Table <- tables()],
+    init_tables().
+	
 start() ->
-    ok = mnesia:wait_for_tables([pe, u, ua, o, oa, pc, assign, association, 
-				 u_deny_conj, p_deny_conj, ua_deny_conj,
-				 u_deny_disj, p_deny_disj, ua_deny_disj, 
-				 obligation, ar, aop, rop, arset, atiset, ateset,
-				 pattern, response],
-				5000).
+    ok = mnesia:wait_for_tables(tables(), 5000).
 
 %%%===================================================================
 %%% Internal functions

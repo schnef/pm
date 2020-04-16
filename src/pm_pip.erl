@@ -27,11 +27,22 @@
 %% TODO: move the following functions to the module pm_pdp?
 -export([disj_range/3, conj_range/3]).
 
--export([rebuild/1]).
+-export([new/0, delete/1, rebuild/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+-spec new() -> digraph:graph().
+%% @doc Creates and returns a new digraph.
+new() ->
+    digraph:new([acyclic, protected]).
+
+-spec delete(G :: digraph:graph()) -> ok.
+%% @doc Deletes digraph `G'. 
+delete(G) ->
+    digraph:delete(G),
+    ok.
 
 %% C.2 Element Creation Commands
 -spec create_u_in_ua(G, U, UA) -> {ok, pm:u()} | no_return() when
@@ -570,7 +581,8 @@ rebuild_child(G, #assign{a = X, b = Y} = Assign) ->
 users(G, #ua{id = X}) -> 
     users(G, X);
 users(G, X) -> 
-    [U || {u, _} = U <- digraph_utils:reaching_neighbours([X], G)].
+    [U || {u, _} = Id <- digraph_utils:reaching_neighbours([X], G),
+	  U <- mnesia:dirty_read(u, Id)].
 
 -spec objects(G, OA) -> [O] when
       G :: digraph:graph(),
@@ -582,7 +594,8 @@ users(G, X) ->
 objects(G, #oa{id = X}) ->
     objects(G, X);
 objects(G, X) ->
-    [O || {o, _} = O <- digraph_utils:reaching([X], G)].
+    [O || {o, _} = Id <- digraph_utils:reaching_neighbours([X], G),
+	  O <- mnesia:dirty_read(o, Id)].
 
 -spec elements(G, PE) -> [E] when
       G :: digraph:graph(),
@@ -592,18 +605,28 @@ objects(G, X) ->
 %% function represents the mapping from a given policy element `PE' to
 %% the set of policy elements that includes the policy element and all
 %% the policy elements contained by that policy element.
-elements(_G, #u{id = X}) -> 
-    [X];
-elements(G, #ua{id = X}) -> 
-    elements(G, X);
-elements(_G, #o{id = X}) -> 
-    [X];
-elements(G, #oa{id = X}) -> 
-    elements(G, X);
-elements(G, #pc{id = X}) -> 
-    elements(G, X);
-elements(G, X) -> 
-    digraph_utils:reaching([X], G).
+elements(G, PE) ->
+    case PE of
+	#pc{id = X} -> X;
+	#ua{id = X} -> X;
+	#u{id = X} -> X;
+	#oa{id = X} -> X;
+	#o{id = X} -> X
+    end,
+    F = fun({ua, _} = Id) ->
+		[UA] = mnesia:dirty_read(ua, Id),
+		UA;
+	   ({u, _} = Id) ->
+		[U] = mnesia:dirty_read(u, Id),
+		U;
+	   ({oa, _} = Id) ->
+		[OA] = mnesia:dirty_read(oa, Id),
+		OA;
+	   ({o, _} = Id) ->
+		[O] = mnesia:dirty_read(o, Id),
+		O
+	end,
+    lists:map(F, digraph_utils:reaching_neighbours([X], G)).
 
 -spec icap(G, UA) -> [{ARset, AT}] when
       G :: digraph:graph(),
@@ -1324,5 +1347,5 @@ tst_pumapping() ->
     PU2 = create_pumapping(P, v, PU1),
     [?_assertEqual([#process_user{u = undefined, p = P}], PU1),
      ?_assertEqual([#process_user{u = v, p = P}], PU2)].
-    
+
 -endif.

@@ -115,6 +115,19 @@ conj_range() ->
     io:format("Diff PE, ATEs~n~p~n", [sofs:difference(PE, ATEs)]),
     sofs:intersection(ATIs, sofs:difference(PE, ATEs)).
 
+minimal() ->
+    {ok, PC} = pm_pap:c_pc(#pc{value="pc"}).    
+
+basic() ->
+    {ok, PC} = pm_pap:c_pc(#pc{value="pc"}),
+    {ok, UA} = pm_pap:c_ua_in_pc(#ua{value="ua"}, PC),
+    {ok, U} = pm_pap:c_u_in_ua(#u{value="u"}, UA),
+    {ok, OA} = pm_pap:c_oa_in_pc(#oa{value="oa"}, PC),
+    {ok, O} = pm_pap:c_o_in_oa(#o{value="o"}, OA),
+    [U] = pm_pap:users(UA),
+    [O] = pm_pap:objects(OA),
+    lists:sort([U, UA, O, OA]) =:= lists:sort(pm_pap:elements(PC)).
+
 g() ->
     {ok, PC1} = pm_pap:c_pc(#pc{value="pc1"}),
     {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC1),
@@ -151,6 +164,14 @@ g() ->
       oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2
       %% pc2 => PC2, ua4 => UA4, ua5 => UA5, ua6 => UA6
      }.
+
+tst1() ->
+    pm_pap:clear(),
+    {ok, G} = pm_pap:get_digraph(),
+    M = g(),
+    #{ u2 := {u, U, _}, o2 := {o, O, _} } = M,
+    pm_mell:find_border_oa_priv_RESTRICTED(G, U),
+    pm_mell:calc_priv(G, U ,O).
 
 %% =============================================================================
 %% Digraph

@@ -10,13 +10,7 @@
 	 vis_initial_oa_RESTRICTED/2, predecessor_oa/3, successor_oa/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
-
-%% =============================================================================
-%% The following functions are taken from the document "English Prose
-%% Access Control Graph Algorithms with Complexity Analysis" by Peter
-%% Mell.
-%% =============================================================================
-
+%% This function takes a digraph and outputs dot formatted output for displaying the graph.
 gv(G) ->
     PEs = digraph_utils:topsort(G),
     F1 = fun({u, _} = Id, {Acc, Iu, Iua, Io, Ioa, Ipc}) ->
@@ -103,9 +97,16 @@ gv(G) ->
 			lists:join(";\n", Ns)]),
     file:close(S).
 
--spec find_border_oa_priv_ANSI(G, U_id) -> [{AT_id, [{AR_id, PC_id}]}] when
+%% =============================================================================
+%% The following functions are taken from the document "English Prose
+%% Access Control Graph Algorithms with Complexity Analysis" by Peter
+%% Mell.
+%% =============================================================================
+
+-spec find_border_oa_priv_ANSI(G, U) -> ATnodes when
       G :: digraph:graph(),
-      U_id :: pm:id(),
+      U :: pm:id() | pm:u(),
+      ATnodes :: [{AT_id, [{PC_id, [AR_id]}]}],
       AT_id :: pm:id(),
       AR_id :: pm:id(),
       PC_id :: pm:id().
@@ -117,9 +118,10 @@ gv(G) ->
 find_border_oa_priv_ANSI(G, U) ->
     find_border_oa_priv(G, U, false).
 
--spec find_border_oa_priv_RESTRICTED(G, U_id) -> [{AT_id, [{AR_id, PC_id}]}] when
+-spec find_border_oa_priv_RESTRICTED(G, U) -> ATnodes when
       G :: digraph:graph(),
-      U_id :: pm:id(),
+      U :: pm:id() | pm:u(),
+      ATnodes :: [{AT_id, [{PC_id, [AR_id]}]}],
       AT_id :: pm:id(),
       AR_id :: pm:id(),
       PC_id :: pm:id().
@@ -133,6 +135,8 @@ find_border_oa_priv_ANSI(G, U) ->
 find_border_oa_priv_RESTRICTED(G, U) ->
     find_border_oa_priv(G, U, true).
 
+find_border_oa_priv(G, #u{id = U}, Restricted) ->
+    find_border_oa_priv(G, U, Restricted);
 find_border_oa_priv(G, U, Restricted) ->
     %% Search from u to find set of ua nodes. Whether the
     %% reachable_neighbours/2 uses a BFS (breath first search) is
@@ -204,15 +208,51 @@ find_border_oa_priv(G, U, Restricted) ->
     		 Set3 = sets:union(Set1, Set2),
 		 Acc#{PC => Set3}
     	 end,
-    [{AT, [{PC, sets:to_list(ARs)} || {PC, ARs} <- maps:to_list(lists:foldl(F3, #{}, Pairs))]}
+    [{AT, [{PC, ARs} || {PC, ARs} <- maps:to_list(lists:foldl(F3, #{}, Pairs))]}
      || {AT, Pairs} <- Active3].
     
 find_pc_set(G, AT) ->
     [PC || {pc, _} = PC <- digraph_utils:reachable_neighbours([AT], G)].
 
+-spec calc_priv(G, U ,OA) -> [AR_id] when
+      G :: digraph:graph(),
+      U :: pm:id() | pm:u(),
+      OA :: pm:id(),
+      AR_id :: pm:id().
 %% @doc This function returns all privileges that u has on oa
 calc_priv(G, U ,OA) ->
-    [].
+    %% From oa, BFS to find all reachable oa border and other oa
+    %% nodes. Pick up the PCs at the same time and put them in two
+    %% different lists.
+    %%
+    %% TODO: Is it correct to assume that the OA itself may be a
+    %% border OA? I.e. use `digraph_utils:reachable' instead of
+    %% `digraph_utils:reachable__neighbours'.
+    F1 = fun({o, _} = X, {Xs, Ys}) ->
+		 {[X | Xs], Ys};
+	    ({oa, _} = X, {Xs, Ys}) ->
+		 {[X | Xs], Ys};
+	    ({pc, _} = Y, {Xs, Ys}) ->
+		 {Xs, [Y | Ys]}
+	 end,
+    {OAs, PCs} = lists:foldl(F1, {[], []}, digraph_utils:reachable([OA], G)),
+    
+    io:format("++ pcs ~p~n", [PCs]),
+    io:format("++ oas ~p~n", [OAs]),
+    %% execute find_border_oa_priv(u) (either the ANSI or NIST
+    %% RESTRICTED version) to find the set of 'oa border nodes' Only
+    %% take into account the OA border nodes which we found in the
+    %% previous step.
+    AT_nodes1 = find_border_oa_priv_RESTRICTED(G, U),
+    io:format("++ at_nodes ~p~n", [AT_nodes1]),
+    ARsets = [ARset || {AT, Pairs} = AT_node <- AT_nodes1,
+		       lists:member(AT, OAs),
+		       {PC, ARset} <- Pairs,
+		       PC =:= undefined orelse lists:member(PC, PCs)],
+    F2 = fun(S1, S2) ->
+		 sets:union(S1, S2)
+	 end,
+    sets:to_list(lists:foldl(F2, sets:new(), ARsets)).
 
 %% @doc This function determines whether or not u has privilege op on o.
 access(G, U, Op, O) ->

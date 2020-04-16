@@ -37,7 +37,7 @@
 
 -export([users/1, objects/1, elements/1, icap/1, iae/1, disj_range/2, conj_range/2]).
 
--export([rebuild/0]).
+-export([clear/0]).
 
 %% Server name registery API
 -export([register_p/2, unregister_p/1]).
@@ -662,10 +662,13 @@ disj_range(ATIs, ATEs) ->
 conj_range(ATIs, ATEs) ->
     gen_server:call(?SERVER, {conj_range, ATIs, ATEs}).
 
-rebuild() -> 
-    gen_server:call(?SERVER, rebuild).
+-spec clear() -> ok.
+%% @doc Delete all content from the PAP and re-initialize the PAP
+%% tables. This function will delete the digraph and clear all
+%% database tables. THIS STARTS THE PAP FROM SCRATCH!
+clear() -> 
+    gen_server:call(?SERVER, clear).
    
-
 %% @doc Start server
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
@@ -680,7 +683,7 @@ stop() ->
 
 %% @private
 init([]) ->
-    G = digraph:new([acyclic, protected]),
+    G = pm_pip:new(),
     pm_pip:rebuild(G),
     PU = [],
     {ok, #state{g = G, pu = PU}}.
@@ -889,6 +892,12 @@ handle_call({disj_range, ATIs, ATEs}, _From, #state{g = G} = State) ->
 handle_call({conj_range, ATIs, ATEs}, _From, #state{g = G} = State) ->
     Reply = pm_pip:conj_range(G, ATIs, ATEs),
     {reply, Reply, State};
+handle_call(clear, _From, #state{g = G} = State) ->
+    pm_pip:delete(G),
+    pm_db:clear(),
+    G1 = pm_pip:new(),
+    pm_pip:rebuild(G1),
+    {reply, ok, State#state{g = G1}};
 handle_call(Request, _From, State) ->
     Reply = {error, {not_implemented, Request}},
     {reply, Reply, State}.
@@ -1479,12 +1488,9 @@ tst_users_objects_elements() ->
     {ok, U2} = c_u_in_ua(#u{value = "User u2"}, Auditor),
     {ok, Accounts} = c_oa_in_oa(#oa{value = "accounts"}, Branch_1_obj_attr),
     {ok, O1} = c_o_in_oa(#o{value = "Account o1"}, Accounts),
-    [?_assertEqual(lists:sort([U1#u.id, U2#u.id]), lists:sort(users(Branch_1_usr_attr))),
-     ?_assertEqual([O1#o.id], objects(Branch_1_obj_attr)),
-     ?_assertEqual(lists:sort([PC#pc.id, 
-			       Branch_1_usr_attr#ua.id, Branch_1_obj_attr#oa.id,
-			       Teller#ua.id, Auditor#ua.id, U1#u.id, U2#u.id,
-			       Accounts#oa.id, O1#o.id]),
+    [?_assertEqual(lists:sort([U1, U2]), lists:sort(users(Branch_1_usr_attr))),
+     ?_assertEqual([O1], objects(Branch_1_obj_attr)),
+     ?_assertEqual(lists:sort([Branch_1_usr_attr, Branch_1_obj_attr, Teller, Auditor, U1, U2, Accounts, O1]),
 		   lists:sort(elements(PC)))].
 
 tst_icap_iae() ->
