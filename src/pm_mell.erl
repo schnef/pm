@@ -214,13 +214,13 @@ find_border_oa_priv(G, U, Restricted) ->
 find_pc_set(G, AT) ->
     [PC || {pc, _} = PC <- digraph_utils:reachable_neighbours([AT], G)].
 
--spec calc_priv(G, U ,OA) -> [AR_id] when
+-spec calc_priv(G, U ,AT) -> ARs when
       G :: digraph:graph(),
       U :: pm:id() | pm:u(),
-      OA :: pm:id(),
-      AR_id :: pm:id().
+      AT :: pm:id(),
+      ARs :: [atom()].
 %% @doc This function returns all privileges that u has on oa
-calc_priv(G, U ,OA) ->
+calc_priv(G, U ,AT) ->
     %% From oa, BFS to find all reachable oa border and other oa
     %% nodes. Pick up the PCs at the same time and put them in two
     %% different lists.
@@ -228,17 +228,19 @@ calc_priv(G, U ,OA) ->
     %% TODO: Is it correct to assume that the OA itself may be a
     %% border OA? I.e. use `digraph_utils:reachable' instead of
     %% `digraph_utils:reachable__neighbours'.
-    F1 = fun({o, _} = X, {Xs, Ys}) ->
+    F1 = fun({ua, _} = X, {Xs, Ys}) ->
+		 {[X | Xs], Ys};
+	    ({o, _} = X, {Xs, Ys}) ->
 		 {[X | Xs], Ys};
 	    ({oa, _} = X, {Xs, Ys}) ->
 		 {[X | Xs], Ys};
 	    ({pc, _} = Y, {Xs, Ys}) ->
 		 {Xs, [Y | Ys]}
 	 end,
-    {OAs, PCs} = lists:foldl(F1, {[], []}, digraph_utils:reachable([OA], G)),
+    {ATs, PCs} = lists:foldl(F1, {[], []}, digraph_utils:reachable([AT], G)),
     
     io:format("++ pcs ~p~n", [PCs]),
-    io:format("++ oas ~p~n", [OAs]),
+    io:format("++ oas ~p~n", [ATs]),
     %% execute find_border_oa_priv(u) (either the ANSI or NIST
     %% RESTRICTED version) to find the set of 'oa border nodes' Only
     %% take into account the OA border nodes which we found in the
@@ -246,7 +248,7 @@ calc_priv(G, U ,OA) ->
     AT_nodes1 = find_border_oa_priv_RESTRICTED(G, U),
     io:format("++ at_nodes ~p~n", [AT_nodes1]),
     ARsets = [ARset || {AT, Pairs} = AT_node <- AT_nodes1,
-		       lists:member(AT, OAs),
+		       lists:member(AT, ATs),
 		       {PC, ARset} <- Pairs,
 		       PC =:= undefined orelse lists:member(PC, PCs)],
     F2 = fun(S1, S2) ->
