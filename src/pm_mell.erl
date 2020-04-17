@@ -7,7 +7,8 @@
 -export([gv/1]).
 -export([find_border_at_priv_ANSI/2, find_border_at_priv_RESTRICTED/2,
 	 calc_priv_ANSI/3, calc_priv_RESTRICTED/3,
-	 access/4, show_accessible_objects/2, vis_initial_oa_ANSI/2,
+	 access_ANSI/4, access_RESTRICTED/4,
+	 show_accessible_objects/3, vis_initial_oa_ANSI/2,
 	 vis_initial_oa_RESTRICTED/2, predecessor_oa/3, successor_oa/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
@@ -296,7 +297,7 @@ calc_priv_RESTRICTED(G, U ,AT_target) ->
 %%        `undefined` which is handled by the `PC =:= undefined orelse
 %%        lists:member(PC, PCs)` guard.
 %% 5. Last, merge the list of access right sets and return the result as
-%%    a list of access rights the user holds over the target AT.
+%%    a set of access rights the user holds over the target AT.
 %%
 %% The current goal is to get something working, hopefully correctly.
 calc_priv(G, U ,AT_target, Restricted) ->
@@ -325,31 +326,148 @@ calc_priv(G, U ,AT_target, Restricted) ->
     F2 = fun(S1, S2) ->
 		 sets:union(S1, S2)
 	 end,
-    sets:to_list(lists:foldl(F2, sets:new(), ARsets)).
+    lists:foldl(F2, sets:new(), ARsets).
 
-%% @doc This function determines whether or not u has privilege op on o.
-access(G, U, Op, O) ->
-    [].
+-spec access_ANSI(G, U, AR, AT) -> boolean() when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id(),
+      AR :: atom().
+%% @doc This function determines whether or not U has privilege AR on AT, using a
+%% unrestricted match for applicable and required PCs.
+access_ANSI(G, U, AR, AT) ->
+    access(G, U, AR, AT, false).
 
+-spec access_RESTRICTED(G, U, AR, AT) -> boolean() when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id(),
+      AR :: atom().
+%% @doc This function determines whether or not U has privilege AR on AT, using a
+%% restricted match for applicable and required PCs.
+access_RESTRICTED(G, U, AR, AT) ->
+    access(G, U, AR, AT, true).
+
+-spec access(G, U, AR, AT, Restricted) -> boolean() when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id(),
+      Restricted :: boolean(),
+      AR :: atom().
+%% @doc This function determines whether or not U has privilege AR on AT.
+access(G, U, AR, AT, Restricted) ->
+    ARset = calc_priv(G, U ,AT, Restricted),
+    sets:is_element(AR, ARset).
+
+-spec show_accessible_objects(G, U, Restricted) -> [{pm:id(), [AR]}] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      Restricted :: boolean(),
+      AR :: atom().
 %% @doc This function finds the set of objects accessible to u. This
 %% would be used, for example, if the user wanted to do a keyword
 %% search on all accessible object.
-show_accessible_objects(G, U) ->
-    [].
+show_accessible_objects(G, U, Restricted) ->
+    AT_nodes = find_border_at_priv(G, U, Restricted),
+    %% For all border ATs from the AT_nodes list, get the set of
+    %% ARs. In case this is a restricted search, only return the ARs
+    %% set if the applicable PC matches a border AT restricted PC.
+    L1 = relevant_border_nodes(G, AT_nodes, Restricted),
+    %% At this point, we have a list L with all border ATs, paired
+    %% with a set of ARs the user U holds. Now we have to look for the
+    %% relevant Os and Us.
+    L2 = [{UO, ARset} || {AT, ARset} <- L1,
+			 {Tag, _} = UO <- digraph_utils:reaching([AT], G),
+			 Tag =:= u orelse Tag =:= o],
+    %% We now have a list of U and O nodes with for every node the set
+    %% of ARs coming from the ATs. Now merge the ARsets per node.
+    F2 = fun({UO, ARset}, Acc) ->
+		 Set = case Acc of
+			   #{UO := Set1} ->
+			       sets:union(Set1, ARset);
+			   _ ->
+			       ARset
+		       end,
+		 Acc#{UO => Set}
+	 end,
+    M = lists:foldl(F2, #{}, L2),
+    %% Return the U and O nodes found with for each node the ARs as a
+    %% list.
+    [{UO, sets:to_list(ARset)} || {UO, ARset} <- maps:to_list(M)].
+
+%% @doc This function takes a list of potential border nodes of
+%% interest and will turn that list in a list which contains the
+%% relevant border nodes as tuples {AT, ARset}. When restricted, only
+%% the border nodes are returned where the applicable and required PCs
+%% match.
+relevant_border_nodes(G, AT_nodes, Restricted) ->
+    case Restricted of
+	true ->
+		F1 = fun({pc, _}) -> true;
+			(_) -> false
+		     end,
+	    [{AT, ARset}
+	     || {AT, Pairs} <- AT_nodes,
+		PC1 <- lists:filter(F1, digraph_utils:reachable_neighbours([AT], G)),
+		{PC2, ARset} <- Pairs,
+		PC1 =:= PC2];
+	false ->
+	    [{AT, ARset}
+	     || {AT, Pairs} <- AT_nodes,
+		{_PC, ARset} <- Pairs]
+    end.
+
+%% For an attribute to be visible, the user must at least have the
+%% VISIBLE_AR_REQUIRED access right
+-define(VISIBLE_AR_REQUIRED, 'r').
 
 %% @doc Returns the initial set of oa nodes to display when a user
 %% wants to explore their files (and use the access graph structure as
 %% a default way to explore them). THIS FOLLOWS THE ANSI PRIVILEGE PM
 %% SPECIFICATION.
 vis_initial_oa_ANSI(G, U) ->
-    [].
+    vis_initial_oa(G, U, false).
 
 %% @doc Returns the initial set of oa nodes to display when a user
 %% wants to explore their files (and use the access graph structure as
 %% a default way to explore them). THIS FOLLOWS THE NIST RESTRICTED
 %% VERSION OF THE ANSI PM PRIVILEGE SPECIFICATION.
 vis_initial_oa_RESTRICTED(G, U) ->
-    [].
+    vis_initial_oa(G, U, true).
+
+vis_initial_oa(G, U, Restricted) ->
+    AT_nodes = find_border_at_priv(G, U, Restricted),
+    L1 = relevant_border_nodes(G, AT_nodes, Restricted),
+    %% For a node to be visible, all AR sets for each AT must contain
+    %% the required AR, i.e. each AR set must at least contain the 'r'
+    %% (read) access right. If for some {AT, ARset} this isn't the
+    %% case, the AT should not be visible.
+    %%
+    %% The following function adds an AT to the shown map if the ARset
+    %% contains the minimum required AR. If the ARset doesn't contain
+    %% the minimum AR, it will add the AT to the ignored ATs and the
+    %% AT is removed--if present--from the shown map.
+    F2 = fun({AT, ARset}, {Shown, Ignored}) ->
+		 case lists:member(AT, Ignored) of
+		     true ->
+			 {Shown, Ignored};
+		     false ->
+			 case sets:is_element(?VISIBLE_AR_REQUIRED, ARset) of
+			     true ->
+				 Set = case Shown of
+					   #{AT := Set1} ->
+					       sets:union(Set1, ARset);
+					   _ ->
+					       ARset
+				       end,
+				 {Shown#{AT => Set}, Ignored};
+			     false ->
+				 {maps:remove(AT, Shown), [AT | Ignored]}
+			 end
+		 end
+	 end,
+    {M, _} = lists:foldl(F2, {#{}, []}, L1),
+    [{AT, sets:to_list(ARset)} || {AT, ARset} <- maps:to_list(M)].
 
 %% @doc This returns the next hierarchical level of oa nodes to
 %% display given a user and a target object attribute (using the
