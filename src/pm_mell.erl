@@ -5,8 +5,9 @@
 -compile(export_all).
 
 -export([gv/1]).
--export([find_border_oa_priv_ANSI/2, find_border_oa_priv_RESTRICTED/2,
-	 calc_priv/3, access/4, show_accessible_objects/2, vis_initial_oa_ANSI/2,
+-export([find_border_at_priv_ANSI/2, find_border_at_priv_RESTRICTED/2,
+	 calc_priv_ANSI/3, calc_priv_RESTRICTED/3,
+	 access/4, show_accessible_objects/2, vis_initial_oa_ANSI/2,
 	 vis_initial_oa_RESTRICTED/2, predecessor_oa/3, successor_oa/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
@@ -34,26 +35,26 @@ gv(G) ->
 		 [#pc{value = L}] = mnesia:dirty_read(pc, Id),
 		 {[{Id, PC, L} | Acc], Iu, Iua, Io, Ioa, Ipc + 1}
 	 end,
-    {Acc, _, _, _, _, _} = lists:foldl(F1, {[], 1, 1, 1, 1, 1}, PEs),
-    M = maps:from_list([{Id, Name} || {Id, Name, _Label} <- Acc]),
+    {PEs1, _, _, _, _, _} = lists:foldl(F1, {[], 1, 1, 1, 1, 1}, PEs),
+    M = maps:from_list([{Id, Name} || {Id, Name, _Label} <- PEs1]),
     F2 = fun({_Id, Name, undefined}) ->
 		 io_lib:format("  ~s [label=\"<~s>\" shape=plaintext]", [Name, Name]);
 	    ({_Id, Name, Label}) ->
 		 io_lib:format("  ~s [label=\"~s\" shape=plaintext]", [Name, Label])
 	 end,
-    Ns = lists:map(F2, Acc),
+    Ns = lists:map(F2, PEs1),
 
     PCs = [io_lib:format("  ~s -> ~s", [maps:get(Id2, M), Name])
-	   || {{pc, _} = Id1, Name, _Label} <- Acc,
+	   || {{pc, _} = Id1, Name, _Label} <- PEs1,
 	      Id2 <- digraph:in_neighbours(G, Id1)],
 
     Us = [io_lib:format("  ~s -> ~s", [maps:get(Id2, M), Name])
-	  || {{ua, _} = Id1, Name, _Label} <- Acc,
+	  || {{ua, _} = Id1, Name, _Label} <- PEs1,
 	     {Tag, _} = Id2 <- digraph:in_neighbours(G, Id1),
 	     Tag =:= u orelse Tag =:= ua],
 
     Os = [io_lib:format("  ~s -> ~s", [maps:get(Id2, M), Name])
-	  || {{oa, _} = Id1, Name, _Label} <- Acc,
+	  || {{oa, _} = Id1, Name, _Label} <- PEs1,
 	     {Tag, _} = Id2 <- digraph:in_neighbours(G, Id1),
 	     Tag =:= o orelse Tag =:= oa],
 
@@ -67,10 +68,11 @@ gv(G) ->
 	    (_, Acc) ->
 		 Acc
     	 end,
-    Assocs = lists:foldl(F3, [], Acc),
-    As = [io_lib:format("  ~s -> ~s [constraint=false, splines=curved, style=dashed]",
-			[maps:get(UA, M), maps:get(AT, M)])
-	  || #association{ua = UA, at = AT} <- Assocs],
+    Assocs = lists:foldl(F3, [], PEs1),
+    As = [io_lib:format("  ~s -> ~s [label=\"~p\", constraint=false, splines=curved, style=dashed]",
+			[maps:get(UA, M), maps:get(AT, M), sets:to_list(ARs)])
+	  || #association{ua = UA, at = AT, arset = ARset} <- Assocs,
+	     #set{value = ARs} <- mnesia:dirty_read(arset, ARset)],
     {ok, S} = file:open("pm.gv", write),
     io:format(S,
 	      "digraph pm {~n"
@@ -103,9 +105,9 @@ gv(G) ->
 %% Mell.
 %% =============================================================================
 
--spec find_border_oa_priv_ANSI(G, U) -> ATnodes when
+-spec find_border_at_priv_ANSI(G, U) -> ATnodes when
       G :: digraph:graph(),
-      U :: pm:id() | pm:u(),
+      U :: pm:id(),
       ATnodes :: [{AT_id, [{PC_id, [AR_id]}]}],
       AT_id :: pm:id(),
       AR_id :: pm:id(),
@@ -115,12 +117,12 @@ gv(G) ->
 %% from u). THIS FOLLOWS THE ANSI PRIVILEGE PM SPECIFICATION. It
 %% labels each returned node with the reachable PC nodes paired with
 %% the access rights conferred by the ua->oa edges.
-find_border_oa_priv_ANSI(G, U) ->
-    find_border_oa_priv(G, U, false).
+find_border_at_priv_ANSI(G, U) ->
+    find_border_at_priv(G, U, false).
 
--spec find_border_oa_priv_RESTRICTED(G, U) -> ATnodes when
+-spec find_border_at_priv_RESTRICTED(G, U) -> ATnodes when
       G :: digraph:graph(),
-      U :: pm:id() | pm:u(),
+      U :: pm:id(),
       ATnodes :: [{AT_id, [{PC_id, [AR_id]}]}],
       AT_id :: pm:id(),
       AR_id :: pm:id(),
@@ -132,12 +134,10 @@ find_border_oa_priv_ANSI(G, U) ->
 %% PC node pairings of the predecessor ua nodes filtered to include
 %% only pairs where the PC nodes are reachable from the respective oa
 %% node.
-find_border_oa_priv_RESTRICTED(G, U) ->
-    find_border_oa_priv(G, U, true).
+find_border_at_priv_RESTRICTED(G, U) ->
+    find_border_at_priv(G, U, true).
 
-find_border_oa_priv(G, #u{id = U}, Restricted) ->
-    find_border_oa_priv(G, U, Restricted);
-find_border_oa_priv(G, U, Restricted) ->
+find_border_at_priv(G, U, Restricted) ->
     %% Search from u to find set of ua nodes. Whether the
     %% reachable_neighbours/2 uses a BFS (breath first search) is
     %% unknown. It does however return all elements in the graph that
@@ -214,20 +214,96 @@ find_border_oa_priv(G, U, Restricted) ->
 find_pc_set(G, AT) ->
     [PC || {pc, _} = PC <- digraph_utils:reachable_neighbours([AT], G)].
 
--spec calc_priv(G, U ,AT) -> ARs when
+-spec calc_priv_ANSI(G, U ,AT) -> ARs when
       G :: digraph:graph(),
-      U :: pm:id() | pm:u(),
+      U :: pm:id(),
       AT :: pm:id(),
       ARs :: [atom()].
-%% @doc This function returns all privileges that u has on oa
-calc_priv(G, U ,AT) ->
-    %% From oa, BFS to find all reachable oa border and other oa
-    %% nodes. Pick up the PCs at the same time and put them in two
-    %% different lists.
-    %%
-    %% TODO: Is it correct to assume that the OA itself may be a
-    %% border OA? I.e. use `digraph_utils:reachable' instead of
-    %% `digraph_utils:reachable__neighbours'.
+%% @doc This returns all privileges that u has on oa, using a
+%% unrestricted match for applicable and required PCs,
+calc_priv_ANSI(G, U ,AT_target) ->
+    calc_priv(G, U ,AT_target, false).
+
+-spec calc_priv_RESTRICTED(G, U ,AT) -> ARs when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id(),
+      ARs :: [atom()].
+%% @doc This returns all privileges that u has on oa, using a
+%% restricted match for applicable and required PCs,
+calc_priv_RESTRICTED(G, U ,AT_target) ->
+    calc_priv(G, U ,AT_target, true).
+
+-spec calc_priv(G, U ,AT, Restricted) -> ARs when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id(),
+      Restricted :: boolean(),
+      ARs :: [atom()].
+%% @doc This returns all privileges that u has on oa. 
+%%
+%% The following is according to the document by Mell. The
+%% implementation is however different as pointed out
+%% eblow. 
+%%
+%% complexity: O(n2+nm) but pseudo-linear
+%%
+%% 1. execute find_border_oa_priv(u) (either the ANSI or NIST RESTRICTED
+%%    version) to find the set of 'oa border nodes'
+%% 2. From oa, BFS to find all reachable oa border nodes
+%% 3. Label oa with all access right, PC node pairings on the reachable
+%%    oa border nodes (calculated by the find_border_oa_priv method in
+%%    step 1). For the labelling, use a hash table with the access right
+%%    as the key and a set of PC nodes as the values (note that this will
+%%    automatically consolidate duplicates)
+%% 4. BFS from oa to find a set of required PC nodes. 
+%% 5. Traverse the list of access right keys in the hash table. For each
+%%    access right key, x, extract the value y. If the set of required PC
+%%    nodes from step 4 is a subset of y, then add x to the set of
+%%    approved access rights.
+%% 6. Return the set of approved access rights.
+%%
+%% Because privelleges not only apply to object attributes, but also to
+%% objects which are considered object attributes and to user attributes,
+%% the implementation extends the algorithm to include these as well.
+%%
+%% *border* attribuets are defined as the set of endpoints of the
+%% associations of the ua to at edges that are labeled with access rights
+%% (ars).
+%%
+%% The order in which the steps are executed in the current
+%% implementation differs from those described above. The order is now:
+%%
+%% 1. From the target AT (previously oa), find all reachable nodes. Nodes
+%%    can be o, oa and ua. NB: notice that we are not looking for border
+%%    nodes, just nodes.
+%% 2. During the same search, also accumulate a list of the required PC
+%%    nodes.
+%% 3. Now execute the `find_border_at_priv` function which will return a
+%%    list with the *border* nodes that are of interest, i.e. looking for
+%%    border nodes in the first step would duplicate the search already
+%%    done by `find_border_at_priv`.
+%% 4. Now, for each of the border nodes found in step 3:
+%%     1. Select the border ATs which are reachable from the target AT as
+%%        found in step 1,
+%%     2. For each selected border AT, fetch the access right, PC node
+%%        pairings in which the PC is a memeber of the required PCs from
+%%        step 2. The result of this step is a a list of sets, each set
+%%        containing the access rights defined by the applicable
+%%        associations.
+%%        NB: when using the unrestricted `find_border_at_priv_ANSI`
+%%        function, the applicable PCs returned by that function are
+%%        `undefined` which is handled by the `PC =:= undefined orelse
+%%        lists:member(PC, PCs)` guard.
+%% 5. Last, merge the list of access right sets and return the result as
+%%    a list of access rights the user holds over the target AT.
+%%
+%% The current goal is to get something working, hopefully correctly.
+calc_priv(G, U ,AT_target, Restricted) ->
+    %% TODO: Is it correct to assume that the target AT itself may be a
+    %% border AT? I.e. use `digraph_utils:reachable' instead of
+    %% `digraph_utils:reachable_neighbours'. Also note that the target
+    %% AT can, by definition, only be a o, oa or ua and never a u.
     F1 = fun({ua, _} = X, {Xs, Ys}) ->
 		 {[X | Xs], Ys};
 	    ({o, _} = X, {Xs, Ys}) ->
@@ -237,17 +313,12 @@ calc_priv(G, U ,AT) ->
 	    ({pc, _} = Y, {Xs, Ys}) ->
 		 {Xs, [Y | Ys]}
 	 end,
-    {ATs, PCs} = lists:foldl(F1, {[], []}, digraph_utils:reachable([AT], G)),
-    
-    io:format("++ pcs ~p~n", [PCs]),
-    io:format("++ oas ~p~n", [ATs]),
-    %% execute find_border_oa_priv(u) (either the ANSI or NIST
-    %% RESTRICTED version) to find the set of 'oa border nodes' Only
-    %% take into account the OA border nodes which we found in the
-    %% previous step.
-    AT_nodes1 = find_border_oa_priv_RESTRICTED(G, U),
-    io:format("++ at_nodes ~p~n", [AT_nodes1]),
-    ARsets = [ARset || {AT, Pairs} = AT_node <- AT_nodes1,
+    {ATs, PCs} = lists:foldl(F1, {[], []}, digraph_utils:reachable([AT_target], G)),
+    %% io:format("++ pcs ~p~n", [PCs]),
+    %% io:format("++ ats ~p~n", [ATs]),
+    AT_nodes = find_border_at_priv(G, U, Restricted),
+    %% io:format("++ at_nodes ~p~n", [AT_nodes1]),
+    ARsets = [ARset || {AT, Pairs} <- AT_nodes,
 		       lists:member(AT, ATs),
 		       {PC, ARset} <- Pairs,
 		       PC =:= undefined orelse lists:member(PC, PCs)],

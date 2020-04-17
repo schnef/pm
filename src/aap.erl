@@ -169,9 +169,13 @@ tst1() ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
-    #{ u2 := {u, U, _}, o2 := {o, O, _} } = M,
-    pm_mell:find_border_oa_priv_RESTRICTED(G, U),
-    pm_mell:calc_priv(G, U ,O).
+    #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
+    pm_mell:gv(G),
+    [begin
+	 %% io:format("find_border ~p~n", [pm_mell:find_border_at_priv_RESTRICTED(G, U)]),
+	 io:format("calc_priv ~p~n", [pm_mell:calc_priv_RESTRICTED(G, U ,O)])
+     end || U <- [U1, U2],
+	    O <- [O1, O2]].
 
 %% =============================================================================
 %% Digraph
