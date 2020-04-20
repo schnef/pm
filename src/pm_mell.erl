@@ -1,5 +1,6 @@
 -module(pm_mell).
 
+-include_lib("eunit/include/eunit.hrl").
 -include("pm.hrl").
 
 -compile(export_all).
@@ -8,8 +9,9 @@
 -export([find_border_at_priv_ANSI/2, find_border_at_priv_RESTRICTED/2,
 	 calc_priv_ANSI/3, calc_priv_RESTRICTED/3,
 	 access_ANSI/4, access_RESTRICTED/4,
-	 show_accessible_objects/3, vis_initial_oa_ANSI/2,
-	 vis_initial_oa_RESTRICTED/2, predecessor_oa/3, successor_oa/3,
+	 show_accessible_objects_ANSI/2, show_accessible_objects_RESTRICTED/2,
+	 vis_initial_oa_ANSI/2, vis_initial_oa_RESTRICTED/2,
+	 predecessor_oa/3, successor_oa/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
 %% This function takes a digraph and outputs dot formatted output for displaying the graph.
@@ -58,11 +60,6 @@ gv(G) ->
 	  || {{oa, _} = Id1, Name, _Label} <- PEs1,
 	     {Tag, _} = Id2 <- digraph:in_neighbours(G, Id1),
 	     Tag =:= o orelse Tag =:= oa],
-
-    %% Os = [io_lib:format("  ~s -> ~s", [maps:get(Id2, M), Name])
-    %% 	  || {Id1, Name, _Label} <- Acc,
-    %% 	     {Tag, _} = Id2 <- digraph:in_neighbours(G, Id1),
-    %% 	     Tag =:= o orelse Tag =:= oa],
 
     F3 = fun({{ua, _} = Id, _Name, _Label}, Acc) ->
 		 mnesia:dirty_read(association, Id) ++ Acc;
@@ -160,13 +157,16 @@ find_border_at_priv(G, U, Restricted) ->
 		  false ->
 		      [{Assoc, undefined} || Assoc <- Active]
 	      end,
-    
+
     %% For each edge, label the oa node with the access rights
     %% conferred by the edge. Traverse the 'active' ua -> at edges and
     %% add the ARset of each association to the at, merging duplicate
     %% ARsets. At this point, we only use the ids of the ARsets and
     %% not the content of the sets yet. The result is the list of at's
     %% the ua's are pointing to with for each at a list of ARsets.
+
+    %% TODO: !!!!!!!!!! Moeten de ARsets niet gemerged worden per PC? !!!!!!!!!!
+
     F2 = fun({#association{at = AT, arset = ARset}, PCs_appl}, Acc) ->
     		 case lists:keytake(AT, 1, Acc) of
     		     {value, {_AT, ARsets}, Acc1} ->
@@ -176,7 +176,8 @@ find_border_at_priv(G, U, Restricted) ->
     		 end
     	 end,
     Active2 = lists:foldl(F2, [], Active1),
-    
+    io:format("+++ ~p~n", [Active2]),
+
     %% For each reached at node, x, execute find_pc_set(x) to find set
     %% of reachable PC nodes.
     %%
@@ -359,6 +360,22 @@ access(G, U, AR, AT, Restricted) ->
     ARset = calc_priv(G, U ,AT, Restricted),
     sets:is_element(AR, ARset).
 
+-spec show_accessible_objects_ANSI(G, U) -> [{pm:id(), [AR]}] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AR :: atom().
+%% @doc This function finds the unrestricted set of objects accessible to u.
+show_accessible_objects_ANSI(G, U) ->
+    show_accessible_objects(G, U, false).
+
+-spec show_accessible_objects_RESTRICTED(G, U) -> [{pm:id(), [AR]}] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AR :: atom().
+%% @doc This function finds the restricted set of objects accessible to u.
+show_accessible_objects_RESTRICTED(G, U) ->
+    show_accessible_objects(G, U, true).
+
 -spec show_accessible_objects(G, U, Restricted) -> [{pm:id(), [AR]}] when
       G :: digraph:graph(),
       U :: pm:id(),
@@ -476,7 +493,8 @@ vis_initial_oa(G, U, Restricted) ->
 %% clicked. We assume that u has the privilege to see oa in the
 %% directory tree if this method is invoked.
 predecessor_oa(G, U ,OA) ->
-    [].
+    OAs = [AT || {Tag, _} = AT <- digraph:out_neighbours(G, OA),
+		 Tag =:= oa orelse Tag =:= ua].
 
 %% @doc This returns the set of valid parent nodes for oa given that
 %% the user is u.
@@ -570,3 +588,114 @@ elements_intersection(G, [AT | Rest]) ->
 		sets:intersection(Acc, sets:from_list(Es))
 	end,
     lists:foldl(F, sets:from_list(pm_pap:elements(G, AT)), Rest).
+
+%%%===================================================================
+%%% Tests
+%%%===================================================================
+
+-ifdef(EUNIT).
+
+server_test_() ->
+    {setup,
+     fun server_setup/0,
+     fun server_cleanup/1,
+     fun tsts/1}.
+
+server_setup() ->
+    zuuid:start(),
+    {ok, Cwd} = file:get_cwd(), % current working directory
+    Uuid = zuuid:string(zuuid:v1()), % generate a UUID
+    Dir = filename:join([Cwd, "test", Uuid]), % construct temporary directory
+    ok = file:make_dir(Dir),
+    %% Tell Mnesia where to put the temporary database and also
+    %% increase the dump_log_write_threshold to suppress overload
+    %% warnings.
+    application:set_env(mnesia, dir, Dir),
+    application:set_env(mnesia, dump_log_write_threshold, 5000),
+    pm_db:install([node()]), % install a fresh db
+    application:ensure_all_started(pm),
+    Dir.
+
+server_cleanup(Dir) ->
+    application:stop(pm),
+    application:stop(mnesia),
+    {ok, Filenames} = file:list_dir(Dir),
+    [file:delete(filename:join([Dir, Filename])) || Filename <- Filenames],
+    file:del_dir(Dir),
+    ok.
+
+tsts(_Pids) ->
+    {ok, G} = pm_pap:get_digraph(),
+    M = pm1(), % Populate PM
+    [tst_find_border_at_priv(G, M),
+     tst_calc_priv(G, M),
+     tst_show_accessible_objects(G, M)
+    ].
+
+%% The following function(s) create simple PMs.
+pm1() ->
+    {ok, PC1} = pm_pap:c_pc(#pc{value="pc1"}),
+    %% User DAG
+    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC1),
+    {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
+    {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
+    {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
+    {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
+    %% Object DAG
+    {ok, OA21} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC1),
+    {ok, OA20} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA21),
+    {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA20),
+    {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA20),
+    %% Create associations for the access rights
+    {ok, _Assoc1} = pm_pap:c_assoc(UA1, [#ar{id = 'r'}], OA21),
+    {ok, _Assoc2} = pm_pap:c_assoc(UA3, [#ar{id = 'w'}], O2),
+    
+    #{pc1 => PC1, ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
+      oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2}.
+
+tst_find_border_at_priv(G, M) ->
+    #{pc1 := #pc{id = PC1}, u1 := #u{id = U1}, u2 := #u{id = U2},
+      oa21 := #oa{id = OA21}, o2 := #o{id = O2}} = M,
+    [?_assertEqual([{OA21, [{undefined, sets:from_list([r])}]}],
+		   lists:sort(pm_mell:find_border_at_priv_ANSI(G, U1))),
+     ?_assertEqual(lists:sort([{OA21, [{undefined, sets:from_list([r])}]},
+			       {O2, [{undefined, sets:from_list([w])}]}]),
+		   lists:sort(pm_mell:find_border_at_priv_ANSI(G, U2))),
+     ?_assertEqual([{OA21, [{PC1, sets:from_list([r])}]}],
+		   lists:sort(pm_mell:find_border_at_priv_RESTRICTED(G, U1))),
+     ?_assertEqual(lists:sort([{OA21, [{PC1, sets:from_list([r])}]},
+			       {O2, [{PC1, sets:from_list([w])}]}]),
+		   lists:sort(pm_mell:find_border_at_priv_RESTRICTED(G, U2)))
+     ].
+
+tst_calc_priv(G, M) ->
+    #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
+    [?_assertEqual([r],
+		   lists:sort(sets:to_list(pm_mell:calc_priv_ANSI(G, U1 ,O1)))),
+     ?_assertEqual([r],
+		   lists:sort(sets:to_list(pm_mell:calc_priv_ANSI(G, U1 ,O2)))),
+     ?_assertEqual([r],
+		   lists:sort(sets:to_list(pm_mell:calc_priv_ANSI(G, U2 ,O1)))),
+     ?_assertEqual([r,w],
+		   lists:sort(sets:to_list(pm_mell:calc_priv_ANSI(G, U2 ,O2)))),
+     ?_assertEqual([r],
+		   lists:sort(sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U1 ,O1)))),
+     ?_assertEqual([r],
+		   lists:sort(sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U1 ,O2)))),
+     ?_assertEqual([r],
+		   lists:sort(sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U2 ,O1)))),
+     ?_assertEqual([r,w],
+		   lists:sort(sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U2 ,O2))))].
+
+tst_show_accessible_objects(G, M) ->
+    #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
+    [?_assertEqual(lists:sort([{O1, [r]}, {O2, [r]}]),
+		   lists:sort(pm_mell:show_accessible_objects_ANSI(G, U1))),
+     ?_assertEqual(lists:sort([{O1, [r]}, {O2, [r,w]}]),
+		   lists:sort(pm_mell:show_accessible_objects_ANSI(G, U2))),
+     ?_assertEqual(lists:sort([{O1, [r]}, {O2, [r]}]),
+		   lists:sort(pm_mell:show_accessible_objects_RESTRICTED(G, U1))),
+     ?_assertEqual(lists:sort([{O1, [r]}, {O2, [r,w]}]),
+		   lists:sort(pm_mell:show_accessible_objects_RESTRICTED(G, U2)))].
+    
+-endif.

@@ -181,9 +181,9 @@ tst2() ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
-    #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
+    #{u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
     pm_mell:gv(G),
-    [io:format("accessible_objects ~p~n", [pm_mell:show_accessible_objects(G, U, true)])
+    [io:format("accessible_objects ~p~n", [pm_mell:show_accessible_objects_RESTRICTED(G, U)])
      || U <- [U1, U2]].
 
 tst3() ->
@@ -194,6 +194,16 @@ tst3() ->
     pm_mell:gv(G),
     [io:format("vis_initial_oa ~p~n", [pm_mell:vis_initial_oa_ANSI(G, U)])
      || U <- [U1, U2]].
+
+tst4() ->
+    pm_pap:clear(),
+    {ok, G} = pm_pap:get_digraph(),
+    M = g(),
+    #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
+    [{U, OA, OA_pred} || U <- [U1, U2],
+			 {OA, _} <- pm_mell:find_border_at_priv_ANSI(G, U),
+			 OA_pred <- pm_mell:predecessor_oa(G, U ,OA)].
+
 
 %% =============================================================================
 %% Digraph
