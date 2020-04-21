@@ -153,31 +153,36 @@ find_border_at_priv(G, U, Restricted) ->
     %% find_pc_set(x) to find applicable set of PC nodes
     Active1 = case Restricted of
 		  true ->
-		      [{Assoc, find_pc_set(G, UA)} || #association{ua = UA} = Assoc <- Active];
+		      [{AT, PC, ARset}
+		       || #association{ua = UA, at = AT, arset = ARset} <- Active,
+			  PC <- find_pc_set(G, UA)];
 		  false ->
-		      [{Assoc, undefined} || Assoc <- Active]
+		      [{AT, undefined, ARset}
+		       || #association{at = AT, arset = ARset} <- Active]
 	      end,
 
-    %% For each edge, label the oa node with the access rights
-    %% conferred by the edge. Traverse the 'active' ua -> at edges and
-    %% add the ARset of each association to the at, merging duplicate
-    %% ARsets. At this point, we only use the ids of the ARsets and
-    %% not the content of the sets yet. The result is the list of at's
-    %% the ua's are pointing to with for each at a list of ARsets.
-
-    %% TODO: !!!!!!!!!! Moeten de ARsets niet gemerged worden per PC? !!!!!!!!!!
-
-    F2 = fun({#association{at = AT, arset = ARset}, PCs_appl}, Acc) ->
+    %% For each edge, label the oa node with the access rights per
+    %% applicable PC, conferred by the edge. Traverse the 'active' ua
+    %% -> at edges and add the ARset of each association, per
+    %% applicable PC, to the at, merging duplicate ARsets. At this
+    %% point, we only use the ids of the ARsets and not the content of
+    %% the sets yet. The result is the list of at's the ua's are
+    %% pointing to with for each at a list of ARsets.
+    F2 = fun({AT, PC, ARset}, Acc) ->
     		 case lists:keytake(AT, 1, Acc) of
-    		     {value, {_AT, ARsets}, Acc1} ->
-    			 [{AT, lists:merge(ARsets, [ARset]), PCs_appl} | Acc1];
-    		     false ->
-    			 [{AT, [ARset], PCs_appl} | Acc]
-    		 end
-    	 end,
+		     {value, {_AT, PC_ARsets}, Acc1} ->
+			 [{AT, case lists:keytake(PC, 1, PC_ARsets) of
+				   {value, {_PC, ARsets}, PC_ARsets1} ->
+				       [{PC, lists:merge(ARsets, [ARset])} | PC_ARsets1];
+				   false ->
+				       [{PC, [ARset]} | PC_ARsets]
+			       end} | Acc1];
+		     false ->
+			 [{AT, [{PC, [ARset]}]} | Acc]
+		 end
+	 end,
     Active2 = lists:foldl(F2, [], Active1),
-    io:format("+++ ~p~n", [Active2]),
-
+    
     %% For each reached at node, x, execute find_pc_set(x) to find set
     %% of reachable PC nodes.
     %%
@@ -193,25 +198,31 @@ find_border_at_priv(G, U, Restricted) ->
     %% The result is a list with tuples, with each tuple refering to
     %% an AT as the first element and the second element a list of
     %% tuples {ARset, PC}.
-    Active3 = [{AT, [{ARset, PC} || ARset <- ARsets,
-				    PC <- find_pc_set(G, AT),
-				    not Restricted orelse lists:member(PC, PCs_appl)]}
-	       || {AT, ARsets, PCs_appl} <- Active2],
+    F3 = fun({AT, PCs_ARsets}) ->
+		 PCs_required = find_pc_set(G, AT),
+		 PCs_ARsets1 = [{PC_required, ARsets}
+				|| {PC_applicable, ARsets} <- PCs_ARsets,
+				   PC_required <- PCs_required,
+				   not Restricted orelse PC_applicable =:= PC_required],
+		 case PCs_ARsets1 of
+		     [] -> false;
+		     _ -> {true, {AT, PCs_ARsets1}}
+		 end
+	 end,
+    Active3 = lists:filtermap(F3, Active2),
 
-    %% Now merge the ARsets per PC per AT. The function merges ARsets per PC.
-    F3 = fun({ARset, PC}, Acc) ->
-		 case Acc of
-		     #{PC := Set1} ->
-			 Set1;
-		     _ ->
-			 Set1 = sets:new()
-		 end,
-		 [#set{value = Set2}] = mnesia:dirty_read(arset, ARset),
-    		 Set3 = sets:union(Set1, Set2),
-		 Acc#{PC => Set3}
-    	 end,
-    [{AT, [{PC, ARs} || {PC, ARs} <- maps:to_list(lists:foldl(F3, #{}, Pairs))]}
-     || {AT, Pairs} <- Active3].
+    %% Now merge the ARsets per PC per AT.
+    F4a = fun(ARset, Set2) ->
+		  [#set{value = Set1}] = mnesia:dirty_read(arset, ARset),
+		  sets:union(Set1, Set2)
+	  end,
+    F4b = fun({PC, ARsets}) ->
+		  {PC, lists:foldl(F4a, sets:new(), ARsets)}
+	  end,
+    F4c = fun({AT, PC_ARsets}) ->
+		  {AT, lists:map(F4b, PC_ARsets)}
+	  end,
+    lists:map(F4c, Active3).
     
 find_pc_set(G, AT) ->
     [PC || {pc, _} = PC <- digraph_utils:reachable_neighbours([AT], G)].
@@ -276,15 +287,15 @@ calc_priv_RESTRICTED(G, U ,AT_target) ->
 %% The order in which the steps are executed in the current
 %% implementation differs from those described above. The order is now:
 %%
-%% 1. From the target AT (previously oa), find all reachable nodes. Nodes
-%%    can be o, oa and ua. NB: notice that we are not looking for border
-%%    nodes, just nodes.
-%% 2. During the same search, also accumulate a list of the required PC
-%%    nodes.
-%% 3. Now execute the `find_border_at_priv` function which will return a
+%% 1. Execute the `find_border_at_priv` function which will return a
 %%    list with the *border* nodes that are of interest, i.e. looking for
 %%    border nodes in the first step would duplicate the search already
 %%    done by `find_border_at_priv`.
+%% 2. From the target AT (previously oa), find all reachable nodes. Nodes
+%%    can be o, oa and ua. NB: notice that we are not looking for border
+%%    nodes, just nodes.
+%% 3. During the same search, also accumulate a list of the required PC
+%%    nodes.
 %% 4. Now, for each of the border nodes found in step 3:
 %%     1. Select the border ATs which are reachable from the target AT as
 %%        found in step 1,
@@ -306,6 +317,12 @@ calc_priv(G, U ,AT_target, Restricted) ->
     %% border AT? I.e. use `digraph_utils:reachable' instead of
     %% `digraph_utils:reachable_neighbours'. Also note that the target
     %% AT can, by definition, only be a o, oa or ua and never a u.
+
+    %% 1. execute find_border_oa_priv(u) (either the ANSI or NIST RESTRICTED
+    %%    version) to find the set of 'oa border nodes'
+    AT_border_nodes = find_border_at_priv(G, U, Restricted),
+
+    %% 2. From oa, BFS to find all reachable oa border nodes. Pick up PCs along the way
     F1 = fun({ua, _} = X, {Xs, Ys}) ->
 		 {[X | Xs], Ys};
 	    ({o, _} = X, {Xs, Ys}) ->
@@ -316,14 +333,12 @@ calc_priv(G, U ,AT_target, Restricted) ->
 		 {Xs, [Y | Ys]}
 	 end,
     {ATs, PCs} = lists:foldl(F1, {[], []}, digraph_utils:reachable([AT_target], G)),
-    %% io:format("++ pcs ~p~n", [PCs]),
-    %% io:format("++ ats ~p~n", [ATs]),
-    AT_nodes = find_border_at_priv(G, U, Restricted),
-    %% io:format("++ at_nodes ~p~n", [AT_nodes1]),
-    ARsets = [ARset || {AT, Pairs} <- AT_nodes,
+
+    %% steps 3 thru 5
+    ARsets = [ARset || {AT, Pairs} <- AT_border_nodes,
 		       lists:member(AT, ATs),
 		       {PC, ARset} <- Pairs,
-		       PC =:= undefined orelse lists:member(PC, PCs)],
+		       not Restricted orelse lists:member(PC, PCs)],
     F2 = fun(S1, S2) ->
 		 sets:union(S1, S2)
 	 end,
@@ -635,31 +650,37 @@ tsts(_Pids) ->
 %% The following function(s) create simple PMs.
 pm1() ->
     {ok, PC1} = pm_pap:c_pc(#pc{value="pc1"}),
+    {ok, PC2} = pm_pap:c_pc(#pc{value="pc2"}),
+    {ok, PC3} = pm_pap:c_pc(#pc{value="pc3"}),
     %% User DAG
     {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC1),
     {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
     {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
     {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
     {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
+    ok = pm_pap:c_ua_to_pc(UA3, PC2),
     %% Object DAG
     {ok, OA21} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC1),
     {ok, OA20} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA21),
     {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA20),
     {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA20),
+    ok = pm_pap:c_oa_to_pc(OA21, PC3),
     %% Create associations for the access rights
     {ok, _Assoc1} = pm_pap:c_assoc(UA1, [#ar{id = 'r'}], OA21),
     {ok, _Assoc2} = pm_pap:c_assoc(UA3, [#ar{id = 'w'}], O2),
     
-    #{pc1 => PC1, ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
+    #{pc1 => PC1, pc2 => PC2, pc3 => PC3,
+      ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
       oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2}.
 
 tst_find_border_at_priv(G, M) ->
-    #{pc1 := #pc{id = PC1}, u1 := #u{id = U1}, u2 := #u{id = U2},
+    #{pc1 := #pc{id = PC1}, pc3 := #pc{id = PC3}, 
+      u1 := #u{id = U1}, u2 := #u{id = U2},
       oa21 := #oa{id = OA21}, o2 := #o{id = O2}} = M,
-    [?_assertEqual([{OA21, [{undefined, sets:from_list([r])}]}],
+    [?_assertEqual([{OA21, [{PC1, sets:from_list([r])}, {PC3, sets:from_list([r])}]}],
 		   lists:sort(pm_mell:find_border_at_priv_ANSI(G, U1))),
-     ?_assertEqual(lists:sort([{OA21, [{undefined, sets:from_list([r])}]},
-			       {O2, [{undefined, sets:from_list([w])}]}]),
+     ?_assertEqual(lists:sort([{OA21, [{PC1, sets:from_list([r])}, {PC3, sets:from_list([r])}]},
+			       {O2, [{PC1, sets:from_list([w])}, {PC3, sets:from_list([w])}]}]),
 		   lists:sort(pm_mell:find_border_at_priv_ANSI(G, U2))),
      ?_assertEqual([{OA21, [{PC1, sets:from_list([r])}]}],
 		   lists:sort(pm_mell:find_border_at_priv_RESTRICTED(G, U1))),
