@@ -409,54 +409,37 @@ show_accessible_ats(G, U, Restricted) ->
     %% accumulated access rights, from the acces right, PC node
     %% pairings from the AT border node (calculated by the
     %% find_border_at_priv method in step 1).
-    %%
-    %% Merge two PC, ARset pairs by taking the union of the two ARsets.
-    F1a = fun({PC, ARset1}, Acc) ->
-		  case lists:keytake(PC, 1, Acc) of
-		     {value, {_PC, ARset2}, Acc1} ->
-			 [{PC, sets:union(ARset1, ARset2)} | Acc1];
-		     false ->
-			  [{PC, ARset1} | Acc]
-		  end
-	  end,
-    %% Merge the pairs of PC, ARset for every AT
-    F1b = fun({AT, PCs_ARsets1}, Acc) ->
-		  case lists:keytake(AT, 1, Acc) of
-		      {value, {_AT, PCs_ARsets2}, Acc1} ->
-			  [{AT, lists:foldl(F1a, PCs_ARsets2, PCs_ARsets1)} | Acc1];
-		      false ->
-			  [{AT, PCs_ARsets1} | Acc]
-		  end
-	  end,
+
     %% Get all relevant ATs and pair with access right, PC from border AT
-    AT_nodes = [{AT, PCs_ARsets}
+    AT_nodes1 = [{AT, PCs_ARsets}
 		|| {AT_border_node, PCs_ARsets} <- AT_border_nodes,
 		   AT <- digraph_utils:reaching([AT_border_node], G)],
-    lists:foldl(F1b, [], AT_nodes).
 
-
-    %% L1 = relevant_border_ats(G, AT_border_nodes, Restricted),
-    %% %% At this point, we have a list L with all border ATs, paired
-    %% %% with a set of ARs the user U holds. Now we have to look for the
-    %% %% relevant Os and Us.
-    %% L2 = [{UO, ARset} || {AT, ARset} <- L1,
-    %% 			 {Tag, _} = UO <- digraph_utils:reaching([AT], G),
-    %% 			 Tag =:= u orelse Tag =:= o],
-    %% %% We now have a list of U and O nodes with for every node the set
-    %% %% of ARs coming from the ATs. Now merge the ARsets per node.
-    %% F2 = fun({UO, ARset}, Acc) ->
-    %% 		 Set = case Acc of
-    %% 			   #{UO := Set1} ->
-    %% 			       sets:union(Set1, ARset);
-    %% 			   _ ->
-    %% 			       ARset
-    %% 		       end,
-    %% 		 Acc#{UO => Set}
-    %% 	 end,
-    %% M = lists:foldl(F2, #{}, L2),
-    %% %% Return the U and O nodes found with for each node the ARs as a
-    %% %% list.
-    %% [{UO, sets:to_list(ARset)} || {UO, ARset} <- maps:to_list(M)].
+    F1 = fun({AT, PCs_ARsets}, Acc) ->
+		 %% Select applicable ARsets
+		 ARsets1 = case Restricted of
+			       true ->
+				   PCs_required = find_pc_set(G, AT),
+				   [ARsets || {PC, ARsets} <- PCs_ARsets,
+					      lists:member(PC, PCs_required)];
+			       false ->
+				   [ARsets || {_PC, ARsets} <- PCs_ARsets]
+			   end,
+		 %% Merge the ARsets per AT
+		 case ARsets1 of
+		     [] -> Acc;
+		     _ ->
+			 case lists:keytake(AT, 1, Acc) of
+			     {value, {_AT, ARset}, Acc1} ->
+				 [{AT, lists:foldl(fun sets:union/2, ARset, ARsets1)} | Acc1];
+			     false ->
+				 [{AT, lists:foldl(fun sets:union/2, sets:new(), ARsets1)} | Acc]
+			 end
+		 end
+	 end,
+    AT_nodes2 = lists:foldl(F1, [], AT_nodes1),
+    %% For each AT, turn sets into lists
+    [{AT, sets:to_list(ARset)} || {AT, ARset} <- AT_nodes2].
 
 %% @doc This function takes a list of potential border nodes of
 %% interest and will turn that list in a list which contains the
@@ -675,7 +658,7 @@ tsts(_Pids) ->
     M = pm1(), % Populate PM
     [tst_find_border_at_priv(G, M),
      tst_calc_priv(G, M),
-     tst_show_accessible_objects(G, M)
+     tst_show_accessible_ats(G, M)
     ].
 
 %% The following function(s) create simple PMs.
@@ -739,15 +722,17 @@ tst_calc_priv(G, M) ->
      ?_assertEqual([r,w],
 		   lists:sort(sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U2 ,O2))))].
 
-tst_show_accessible_objects(G, M) ->
-    #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
-    [?_assertEqual(lists:sort([{O1, [r]}, {O2, [r]}]),
-		   lists:sort(pm_mell:show_accessible_objects_ANSI(G, U1))),
-     ?_assertEqual(lists:sort([{O1, [r]}, {O2, [r,w]}]),
-		   lists:sort(pm_mell:show_accessible_objects_ANSI(G, U2))),
-     ?_assertEqual(lists:sort([{O1, [r]}, {O2, [r]}]),
-		   lists:sort(pm_mell:show_accessible_objects_RESTRICTED(G, U1))),
-     ?_assertEqual(lists:sort([{O1, [r]}, {O2, [r,w]}]),
-		   lists:sort(pm_mell:show_accessible_objects_RESTRICTED(G, U2)))].
+tst_show_accessible_ats(G, M) ->
+    #{u1 := #u{id = U1}, u2 := #u{id = U2},
+      oa20 := #oa{id = OA20}, oa21 := #oa{id = OA21},
+      o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
+    [?_assertEqual(lists:sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r]}]),
+		   lists:sort(pm_mell:show_accessible_ats_ANSI(G, U1))),
+     ?_assertEqual(lists:sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r,w]}]),
+		   lists:sort(pm_mell:show_accessible_ats_ANSI(G, U2))),
+     ?_assertEqual(lists:sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r]}]),
+		   lists:sort(pm_mell:show_accessible_ats_RESTRICTED(G, U1))),
+     ?_assertEqual(lists:sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r, w]}]),
+		   lists:sort(pm_mell:show_accessible_ats_RESTRICTED(G, U2)))].
     
 -endif.
