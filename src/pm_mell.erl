@@ -9,7 +9,7 @@
 -export([find_border_at_priv_ANSI/2, find_border_at_priv_RESTRICTED/2,
 	 calc_priv_ANSI/3, calc_priv_RESTRICTED/3,
 	 access_ANSI/4, access_RESTRICTED/4,
-	 show_accessible_objects_ANSI/2, show_accessible_objects_RESTRICTED/2,
+	 show_accessible_ats_ANSI/2, show_accessible_ats_RESTRICTED/2,
 	 vis_initial_oa_ANSI/2, vis_initial_oa_RESTRICTED/2,
 	 predecessor_oa/3, successor_oa/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
@@ -375,69 +375,100 @@ access(G, U, AR, AT, Restricted) ->
     ARset = calc_priv(G, U ,AT, Restricted),
     sets:is_element(AR, ARset).
 
--spec show_accessible_objects_ANSI(G, U) -> [{pm:id(), [AR]}] when
+-spec show_accessible_ats_ANSI(G, U) -> [{pm:id(), [AR]}] when
       G :: digraph:graph(),
       U :: pm:id(),
       AR :: atom().
-%% @doc This function finds the unrestricted set of objects accessible to u.
-show_accessible_objects_ANSI(G, U) ->
-    show_accessible_objects(G, U, false).
+%% @doc This function finds the unrestricted set of ats accessible to u.
+show_accessible_ats_ANSI(G, U) ->
+    show_accessible_ats(G, U, false).
 
--spec show_accessible_objects_RESTRICTED(G, U) -> [{pm:id(), [AR]}] when
+-spec show_accessible_ats_RESTRICTED(G, U) -> [{pm:id(), [AR]}] when
       G :: digraph:graph(),
       U :: pm:id(),
       AR :: atom().
-%% @doc This function finds the restricted set of objects accessible to u.
-show_accessible_objects_RESTRICTED(G, U) ->
-    show_accessible_objects(G, U, true).
+%% @doc This function finds the restricted set of ats accessible to u.
+show_accessible_ats_RESTRICTED(G, U) ->
+    show_accessible_ats(G, U, true).
 
--spec show_accessible_objects(G, U, Restricted) -> [{pm:id(), [AR]}] when
+-spec show_accessible_ats(G, U, Restricted) -> [{pm:id(), [AR]}] when
       G :: digraph:graph(),
       U :: pm:id(),
       Restricted :: boolean(),
       AR :: atom().
-%% @doc This function finds the set of objects accessible to u. This
+%% @doc This function finds the set of attributes accessible to u. This
 %% would be used, for example, if the user wanted to do a keyword
-%% search on all accessible object.
-show_accessible_objects(G, U, Restricted) ->
-    AT_nodes = find_border_at_priv(G, U, Restricted),
-    %% For all border ATs from the AT_nodes list, get the set of
-    %% ARs. In case this is a restricted search, only return the ARs
-    %% set if the applicable PC matches a border AT restricted PC.
-    L1 = relevant_border_nodes(G, AT_nodes, Restricted),
-    %% At this point, we have a list L with all border ATs, paired
-    %% with a set of ARs the user U holds. Now we have to look for the
-    %% relevant Os and Us.
-    L2 = [{UO, ARset} || {AT, ARset} <- L1,
-			 {Tag, _} = UO <- digraph_utils:reaching([AT], G),
-			 Tag =:= u orelse Tag =:= o],
-    %% We now have a list of U and O nodes with for every node the set
-    %% of ARs coming from the ATs. Now merge the ARsets per node.
-    F2 = fun({UO, ARset}, Acc) ->
-		 Set = case Acc of
-			   #{UO := Set1} ->
-			       sets:union(Set1, ARset);
-			   _ ->
-			       ARset
-		       end,
-		 Acc#{UO => Set}
-	 end,
-    M = lists:foldl(F2, #{}, L2),
-    %% Return the U and O nodes found with for each node the ARs as a
-    %% list.
-    [{UO, sets:to_list(ARset)} || {UO, ARset} <- maps:to_list(M)].
+%% search on all accessible attributes.
+show_accessible_ats(G, U, Restricted) ->
+    %% execute find_border_oa_priv(u) (either the ANSI or NIST
+    %% RESTRICTED version) to find the set of 'oa border nodes'.
+    AT_border_nodes = find_border_at_priv(G, U, Restricted),
+    
+    %% For each returned AT node, BFS backwards to find all relevant
+    %% attributes. Label each discovered attribute with the
+    %% accumulated access rights, from the acces right, PC node
+    %% pairings from the AT border node (calculated by the
+    %% find_border_at_priv method in step 1).
+    %%
+    %% Merge two PC, ARset pairs by taking the union of the two ARsets.
+    F1a = fun({PC, ARset1}, Acc) ->
+		  case lists:keytake(PC, 1, Acc) of
+		     {value, {_PC, ARset2}, Acc1} ->
+			 [{PC, sets:union(ARset1, ARset2)} | Acc1];
+		     false ->
+			  [{PC, ARset1} | Acc]
+		  end
+	  end,
+    %% Merge the pairs of PC, ARset for every AT
+    F1b = fun({AT, PCs_ARsets1}, Acc) ->
+		  case lists:keytake(AT, 1, Acc) of
+		      {value, {_AT, PCs_ARsets2}, Acc1} ->
+			  [{AT, lists:foldl(F1a, PCs_ARsets2, PCs_ARsets1)} | Acc1];
+		      false ->
+			  [{AT, PCs_ARsets1} | Acc]
+		  end
+	  end,
+    %% Get all relevant ATs and pair with access right, PC from border AT
+    AT_nodes = [{AT, PCs_ARsets}
+		|| {AT_border_node, PCs_ARsets} <- AT_border_nodes,
+		   AT <- digraph_utils:reaching([AT_border_node], G)],
+    lists:foldl(F1b, [], AT_nodes).
+
+
+    %% L1 = relevant_border_ats(G, AT_border_nodes, Restricted),
+    %% %% At this point, we have a list L with all border ATs, paired
+    %% %% with a set of ARs the user U holds. Now we have to look for the
+    %% %% relevant Os and Us.
+    %% L2 = [{UO, ARset} || {AT, ARset} <- L1,
+    %% 			 {Tag, _} = UO <- digraph_utils:reaching([AT], G),
+    %% 			 Tag =:= u orelse Tag =:= o],
+    %% %% We now have a list of U and O nodes with for every node the set
+    %% %% of ARs coming from the ATs. Now merge the ARsets per node.
+    %% F2 = fun({UO, ARset}, Acc) ->
+    %% 		 Set = case Acc of
+    %% 			   #{UO := Set1} ->
+    %% 			       sets:union(Set1, ARset);
+    %% 			   _ ->
+    %% 			       ARset
+    %% 		       end,
+    %% 		 Acc#{UO => Set}
+    %% 	 end,
+    %% M = lists:foldl(F2, #{}, L2),
+    %% %% Return the U and O nodes found with for each node the ARs as a
+    %% %% list.
+    %% [{UO, sets:to_list(ARset)} || {UO, ARset} <- maps:to_list(M)].
 
 %% @doc This function takes a list of potential border nodes of
 %% interest and will turn that list in a list which contains the
 %% relevant border nodes as tuples {AT, ARset}. When restricted, only
 %% the border nodes are returned where the applicable and required PCs
 %% match.
-relevant_border_nodes(G, AT_nodes, Restricted) ->
+relevant_border_ats(G, AT_nodes, Restricted) ->
     case Restricted of
 	true ->
-		F1 = fun({pc, _}) -> true;
-			(_) -> false
-		     end,
+	    F1 = fun({pc, _}) -> true;
+		    (_) -> false
+		 end,
 	    [{AT, ARset}
 	     || {AT, Pairs} <- AT_nodes,
 		PC1 <- lists:filter(F1, digraph_utils:reachable_neighbours([AT], G)),
@@ -469,7 +500,7 @@ vis_initial_oa_RESTRICTED(G, U) ->
 
 vis_initial_oa(G, U, Restricted) ->
     AT_nodes = find_border_at_priv(G, U, Restricted),
-    L1 = relevant_border_nodes(G, AT_nodes, Restricted),
+    L1 = relevant_border_ats(G, AT_nodes, Restricted),
     %% For a node to be visible, all AR sets for each AT must contain
     %% the required AR, i.e. each AR set must at least contain the 'r'
     %% (read) access right. If for some {AT, ARset} this isn't the

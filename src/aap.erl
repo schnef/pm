@@ -182,14 +182,13 @@ tst1() ->
      end || U <- [U1, U2],
 	    O <- [O1, O2]].
 
-tst2() ->
+tst2(Restricted) ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
     #{u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
     pm_mell:gv(G),
-    [io:format("accessible_objects ~p~n", [pm_mell:show_accessible_objects_RESTRICTED(G, U)])
-     || U <- [U1, U2]].
+    io:format("accessible_objects ~p~n", [pm_mell:show_accessible_ats(G, U1, Restricted)]).
 
 tst3() ->
     pm_pap:clear(),
