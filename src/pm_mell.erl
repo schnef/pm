@@ -10,7 +10,7 @@
 	 calc_priv_ANSI/3, calc_priv_RESTRICTED/3,
 	 access_ANSI/4, access_RESTRICTED/4,
 	 show_accessible_ats_ANSI/2, show_accessible_ats_RESTRICTED/2,
-	 vis_initial_oa_ANSI/2, vis_initial_oa_RESTRICTED/2,
+	 vis_initial_at_ANSI/2, vis_initial_at_RESTRICTED/2,
 	 predecessor_oa/3, successor_oa/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
@@ -412,28 +412,21 @@ show_accessible_ats(G, U, Restricted) ->
 
     %% Get all relevant ATs and pair with access right, PC from border AT
     AT_nodes1 = [{AT, PCs_ARsets}
-		|| {AT_border_node, PCs_ARsets} <- AT_border_nodes,
-		   AT <- digraph_utils:reaching([AT_border_node], G)],
-
-    F1 = fun({AT, PCs_ARsets}, Acc) ->
+		 || {AT_border_node, PCs_ARsets} <- AT_border_nodes,
+		    AT <- digraph_utils:reaching([AT_border_node], G)],
+    
+    F1 = fun({AT, _PC_ARsets} = AT_node, Acc) ->
 		 %% Select applicable ARsets
-		 ARsets1 = case Restricted of
-			       true ->
-				   PCs_required = find_pc_set(G, AT),
-				   [ARsets || {PC, ARsets} <- PCs_ARsets,
-					      lists:member(PC, PCs_required)];
-			       false ->
-				   [ARsets || {_PC, ARsets} <- PCs_ARsets]
-			   end,
+		 ARsets = select_arsets(G, AT_node, Restricted),
 		 %% Merge the ARsets per AT
-		 case ARsets1 of
+		 case ARsets of
 		     [] -> Acc;
 		     _ ->
 			 case lists:keytake(AT, 1, Acc) of
 			     {value, {_AT, ARset}, Acc1} ->
-				 [{AT, lists:foldl(fun sets:union/2, ARset, ARsets1)} | Acc1];
+				 [{AT, lists:foldl(fun sets:union/2, ARset, ARsets)} | Acc1];
 			     false ->
-				 [{AT, lists:foldl(fun sets:union/2, sets:new(), ARsets1)} | Acc]
+				 [{AT, lists:foldl(fun sets:union/2, sets:new(), ARsets)} | Acc]
 			 end
 		 end
 	 end,
@@ -441,79 +434,69 @@ show_accessible_ats(G, U, Restricted) ->
     %% For each AT, turn sets into lists
     [{AT, sets:to_list(ARset)} || {AT, ARset} <- AT_nodes2].
 
-%% @doc This function takes a list of potential border nodes of
-%% interest and will turn that list in a list which contains the
-%% relevant border nodes as tuples {AT, ARset}. When restricted, only
-%% the border nodes are returned where the applicable and required PCs
-%% match.
-relevant_border_ats(G, AT_nodes, Restricted) ->
-    case Restricted of
-	true ->
-	    F1 = fun({pc, _}) -> true;
-		    (_) -> false
-		 end,
-	    [{AT, ARset}
-	     || {AT, Pairs} <- AT_nodes,
-		PC1 <- lists:filter(F1, digraph_utils:reachable_neighbours([AT], G)),
-		{PC2, ARset} <- Pairs,
-		PC1 =:= PC2];
-	false ->
-	    [{AT, ARset}
-	     || {AT, Pairs} <- AT_nodes,
-		{_PC, ARset} <- Pairs]
-    end.
-
 %% For an attribute to be visible, the user must at least have the
 %% VISIBLE_AR_REQUIRED access right
--define(VISIBLE_AR_REQUIRED, 'r').
+-define(VISIBLE_AR_REQUIRED, ['r']).
 
-%% @doc Returns the initial set of oa nodes to display when a user
-%% wants to explore their files (and use the access graph structure as
-%% a default way to explore them). THIS FOLLOWS THE ANSI PRIVILEGE PM
-%% SPECIFICATION.
-vis_initial_oa_ANSI(G, U) ->
-    vis_initial_oa(G, U, false).
+%% @doc Returns the initial set of AT nodes to display. THIS FOLLOWS
+%% THE ANSI PRIVILEGE PM SPECIFICATION.
+vis_initial_at_ANSI(G, U) ->
+    vis_initial_at(G, U, false).
 
-%% @doc Returns the initial set of oa nodes to display when a user
-%% wants to explore their files (and use the access graph structure as
-%% a default way to explore them). THIS FOLLOWS THE NIST RESTRICTED
-%% VERSION OF THE ANSI PM PRIVILEGE SPECIFICATION.
-vis_initial_oa_RESTRICTED(G, U) ->
-    vis_initial_oa(G, U, true).
+%% @doc Returns the initial set of AT nodes to display. THIS FOLLOWS
+%% THE NIST RESTRICTED VERSION OF THE ANSI PM PRIVILEGE SPECIFICATION.
+vis_initial_at_RESTRICTED(G, U) ->
+    vis_initial_at(G, U, true).
 
-vis_initial_oa(G, U, Restricted) ->
-    AT_nodes = find_border_at_priv(G, U, Restricted),
-    L1 = relevant_border_ats(G, AT_nodes, Restricted),
-    %% For a node to be visible, all AR sets for each AT must contain
-    %% the required AR, i.e. each AR set must at least contain the 'r'
-    %% (read) access right. If for some {AT, ARset} this isn't the
-    %% case, the AT should not be visible.
-    %%
-    %% The following function adds an AT to the shown map if the ARset
-    %% contains the minimum required AR. If the ARset doesn't contain
-    %% the minimum AR, it will add the AT to the ignored ATs and the
-    %% AT is removed--if present--from the shown map.
-    F2 = fun({AT, ARset}, {Shown, Ignored}) ->
-		 case lists:member(AT, Ignored) of
-		     true ->
-			 {Shown, Ignored};
-		     false ->
-			 case sets:is_element(?VISIBLE_AR_REQUIRED, ARset) of
-			     true ->
-				 Set = case Shown of
-					   #{AT := Set1} ->
-					       sets:union(Set1, ARset);
-					   _ ->
-					       ARset
-				       end,
-				 {Shown#{AT => Set}, Ignored};
-			     false ->
-				 {maps:remove(AT, Shown), [AT | Ignored]}
-			 end
-		 end
-	 end,
-    {M, _} = lists:foldl(F2, {#{}, []}, L1),
-    [{AT, sets:to_list(ARset)} || {AT, ARset} <- maps:to_list(M)].
+%% @doc Returns the initial set of AT nodes to display.
+%%
+%% 1. execute find_border_oa_priv(U), restricted or unrestricted. to get
+%%    set of border oa nodes and their access right, PC node pairings;
+%% 2. Check for access right to visulize:
+%%    - For the unrestricted version: Find out if any of the access
+%%      right, PC node pairings allows for visulaizing the node, e.g. at
+%%      least one of the ARsets has the "desired access rights" as a
+%%      subset. That is, the AT node will be visualized if one of the PC,
+%%      access right pairs allows this, even if other pairs do not allow
+%%      this.
+%%    - For the restricted version, select only those access right, PC
+%%      node pairings for which the applicable and required PCs match and
+%%      allow visualization if at least one of these pairs has the
+%%      desired access rights as a subset.
+%% 3. Return set of viewable nodes along with their access right, PC node
+%%    pairings (from step 1). Note don't reduce the access right, PC node
+%%    pairings based on the filtering done for step 2.
+vis_initial_at(G, U, Restricted) ->
+    AT_border_nodes = find_border_at_priv(G, U, Restricted),
+    Desired_ARset = sets:from_list(?VISIBLE_AR_REQUIRED),
+    F1a = fun(ARset) ->
+		  sets:is_subset(Desired_ARset, ARset)
+	  end,
+    F1b = fun({AT, PC_ARsets} = AT_node) ->
+    		  ARsets = select_arsets(G, AT_node, Restricted),
+    		  case lists:any(F1a, ARsets) of
+    		      true ->
+    			  {true, {AT, [{PC, sets:to_list(ARset)} || {PC, ARset} <- PC_ARsets]}};
+    		      false ->
+    			  false
+    		  end
+    	  end,
+    lists:filtermap(F1b, AT_border_nodes).
+    %% F1b = fun(AT_node) ->
+    %% 		  ARsets = select_arsets(G, AT_node, Restricted),
+    %% 		  lists:any(F1a, ARsets)
+    %% 	  end,
+    %% lists:filter(F1b, AT_border_nodes).
+
+select_arsets(G, {AT, PC_ARsets}, Restricted) ->
+    case Restricted of
+	true ->
+	    PCs_required = find_pc_set(G, AT),
+	    [ARset || {PC, ARset} <- PC_ARsets,
+		      lists:member(PC, PCs_required)];
+	false ->
+	    [ARset || {_PC, ARset} <- PC_ARsets]
+    end.
 
 %% @doc This returns the next hierarchical level of oa nodes to
 %% display given a user and a target object attribute (using the
@@ -542,9 +525,6 @@ find_orphan_objects(G, U) ->
 %% actual be a user instead of a user attribute.
 show_ua(G, UA) ->
     [].
-
-
-
 
 
 %% TDOO: improve specs by giving a more specific type for Candidates,
@@ -618,6 +598,7 @@ elements_intersection(G, [AT | Rest]) ->
 	end,
     lists:foldl(F, sets:from_list(pm_pap:elements(G, AT)), Rest).
 
+
 %%%===================================================================
 %%% Tests
 %%%===================================================================
@@ -658,8 +639,24 @@ tsts(_Pids) ->
     M = pm1(), % Populate PM
     [tst_find_border_at_priv(G, M),
      tst_calc_priv(G, M),
-     tst_show_accessible_ats(G, M)
+     tst_show_accessible_ats(G, M),
+     tst_vis_initial_at(G, M)
     ].
+
+%% @doc Recursive lists sort. Sort list and if an element of the list
+%% is a key value pair with the value being a list, also sort that
+%% list.
+sort(L) ->    
+    F = fun({K, [E | _] = V}) when is_tuple(E) -> {K, sort(V)};
+	   ({K, V}) when is_list(V) -> {K, lists:sort(V)};
+	   (E) -> E
+	end,
+    L1 = lists:keysort(1, L),
+    lists:map(F, L1).
+
+%% @doc Check on quality of two sets
+sets_equal(S1, S2) ->
+    sets:is_subset(S1, S2) andalso sets:is_subset(S2, S1).
 
 %% The following function(s) create simple PMs.
 pm1() ->
@@ -691,16 +688,16 @@ tst_find_border_at_priv(G, M) ->
     #{pc1 := #pc{id = PC1}, pc3 := #pc{id = PC3}, 
       u1 := #u{id = U1}, u2 := #u{id = U2},
       oa21 := #oa{id = OA21}, o2 := #o{id = O2}} = M,
-    [?_assertEqual([{OA21, [{PC1, sets:from_list([r])}, {PC3, sets:from_list([r])}]}],
-		   lists:sort(pm_mell:find_border_at_priv_ANSI(G, U1))),
-     ?_assertEqual(lists:sort([{OA21, [{PC1, sets:from_list([r])}, {PC3, sets:from_list([r])}]},
-			       {O2, [{PC1, sets:from_list([w])}, {PC3, sets:from_list([w])}]}]),
-		   lists:sort(pm_mell:find_border_at_priv_ANSI(G, U2))),
+    [?_assertEqual(sort([{OA21, [{PC1, sets:from_list([r])}, {PC3, sets:from_list([r])}]}]),
+		   sort(pm_mell:find_border_at_priv_ANSI(G, U1))),
+     ?_assertEqual(sort([{OA21, [{PC1, sets:from_list([r])}, {PC3, sets:from_list([r])}]},
+			 {O2, [{PC1, sets:from_list([w])}, {PC3, sets:from_list([w])}]}]),
+		   sort(pm_mell:find_border_at_priv_ANSI(G, U2))),
      ?_assertEqual([{OA21, [{PC1, sets:from_list([r])}]}],
-		   lists:sort(pm_mell:find_border_at_priv_RESTRICTED(G, U1))),
-     ?_assertEqual(lists:sort([{OA21, [{PC1, sets:from_list([r])}]},
-			       {O2, [{PC1, sets:from_list([w])}]}]),
-		   lists:sort(pm_mell:find_border_at_priv_RESTRICTED(G, U2)))
+		   sort(pm_mell:find_border_at_priv_RESTRICTED(G, U1))),
+     ?_assertEqual(sort([{OA21, [{PC1, sets:from_list([r])}]},
+			 {O2, [{PC1, sets:from_list([w])}]}]),
+		   sort(pm_mell:find_border_at_priv_RESTRICTED(G, U2)))
      ].
 
 tst_calc_priv(G, M) ->
@@ -720,19 +717,37 @@ tst_calc_priv(G, M) ->
      ?_assertEqual([r],
 		   lists:sort(sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U2 ,O1)))),
      ?_assertEqual([r,w],
-		   lists:sort(sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U2 ,O2))))].
+		   lists:sort(sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U2 ,O2))))
+    ].
 
 tst_show_accessible_ats(G, M) ->
     #{u1 := #u{id = U1}, u2 := #u{id = U2},
       oa20 := #oa{id = OA20}, oa21 := #oa{id = OA21},
       o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
-    [?_assertEqual(lists:sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r]}]),
-		   lists:sort(pm_mell:show_accessible_ats_ANSI(G, U1))),
-     ?_assertEqual(lists:sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r,w]}]),
-		   lists:sort(pm_mell:show_accessible_ats_ANSI(G, U2))),
-     ?_assertEqual(lists:sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r]}]),
-		   lists:sort(pm_mell:show_accessible_ats_RESTRICTED(G, U1))),
-     ?_assertEqual(lists:sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r, w]}]),
-		   lists:sort(pm_mell:show_accessible_ats_RESTRICTED(G, U2)))].
-    
+    [?_assertEqual(sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r]}]),
+		   sort(pm_mell:show_accessible_ats_ANSI(G, U1))),
+     ?_assertEqual(sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r,w]}]),
+		   sort(pm_mell:show_accessible_ats_ANSI(G, U2))),
+     ?_assertEqual(sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r]}]),
+		   sort(pm_mell:show_accessible_ats_RESTRICTED(G, U1))),
+     ?_assertEqual(sort([{OA21, [r]}, {OA20, [r]}, {O1, [r]}, {O2, [r, w]}]),
+		   sort(pm_mell:show_accessible_ats_RESTRICTED(G, U2)))
+    ].
+
+tst_vis_initial_at(G, M) ->
+    %% NB: THIS TEST CAN FAIL EASILY IF THE SUBLISTS FOR THE PC,
+    %% ACCESS RIGHTS HAVE A DIFFERENT ORDERING THAN THE ONES RETURNED
+    %% FROM THE TESTED FUNCTIONS. MAYBE USE SOME RECURSIVE LISTS SORT
+    %% ON BOTH THE EXPECTED AND RETURNED VALUES?
+    #{pc1 := #pc{id = PC1}, pc3 := #pc{id = PC3}, 
+      u1 := #u{id = U1}, u2 := #u{id = U2},
+      oa21 := #oa{id = OA21}} = M,
+    [?_assertEqual(sort([{OA21, [{PC1, [r]}, {PC3, [r]}]}]),
+		   sort(pm_mell:vis_initial_at_ANSI(G, U1))),
+     ?_assertEqual(sort([{OA21, [{PC1, [r]}, {PC3, [r]}]}]),
+		   sort(pm_mell:vis_initial_at_ANSI(G, U2))),
+     ?_assertEqual(sort([{OA21, [{PC1, [r]}]}]),
+		   sort(pm_mell:vis_initial_at_RESTRICTED(G, U1))),
+     ?_assertEqual(sort([{OA21, [{PC1, [r]}]}]),
+		   sort(pm_mell:vis_initial_at_RESTRICTED(G, U2)))].
 -endif.

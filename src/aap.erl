@@ -188,15 +188,16 @@ tst2(Restricted) ->
     M = g(),
     #{u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
     pm_mell:gv(G),
-    io:format("accessible_objects ~p~n", [pm_mell:show_accessible_ats(G, U1, Restricted)]).
+    [io:format("accessible_objects ~p~n", [pm_mell:show_accessible_ats(G, U, Restricted)])
+     || U <- [U1, U2]].
 
-tst3() ->
+tst3(Restricted) ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
     #{u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
     pm_mell:gv(G),
-    [io:format("vis_initial_oa ~p~n", [pm_mell:vis_initial_oa_ANSI(G, U)])
+    [io:format("vis_initial_at ~p~n", [pm_mell:vis_initial_at(G, U, Restricted)])
      || U <- [U1, U2]].
 
 tst4(Flag) ->
