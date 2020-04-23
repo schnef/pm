@@ -11,7 +11,8 @@
 	 access_ANSI/4, access_RESTRICTED/4,
 	 show_accessible_ats_ANSI/2, show_accessible_ats_RESTRICTED/2,
 	 vis_initial_at_ANSI/2, vis_initial_at_RESTRICTED/2,
-	 predecessor_at/4, successor_at/3,
+	 predecessor_at_ANSI/3, predecessor_at_RESTRICTED/3,
+	 successor_at/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
 %% This function takes a digraph and outputs dot formatted output for displaying the graph.
@@ -438,6 +439,11 @@ show_accessible_ats(G, U, Restricted) ->
 %% VISIBLE_AR_REQUIRED access right
 -define(VISIBLE_AR_REQUIRED, ['r']).
 
+-spec vis_initial_at_ANSI(G, U) -> [{AT, ARs}] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id(),
+      ARs :: [atom()].
 %% @doc Returns the initial set of AT nodes to display. THIS FOLLOWS
 %% THE ANSI PRIVILEGE PM SPECIFICATION.
 vis_initial_at_ANSI(G, U) ->
@@ -498,13 +504,29 @@ select_arsets(G, {AT, PC_ARsets}, Restricted) ->
 	    [ARset || {_PC, ARset} <- PC_ARsets]
     end.
 
+-spec predecessor_at_ANSI(G, U, AT) -> [AT] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id().
+%% @doc This returns the next hierarchical level of oa nodes
+predecessor_at_ANSI(G, U, AT) ->
+    predecessor_at(G, U, AT, false).
+
+-spec predecessor_at_RESTRICTED(G, U, AT) -> [AT] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id().
+%% @doc This returns the next hierarchical level of oa nodes
+predecessor_at_RESTRICTED(G, U, AT) ->
+    predecessor_at(G, U, AT, true).
+
 %% @doc This returns the next hierarchical level of oa nodes to
 %% display given a user and a target object attribute (using the
 %% access graph structure as a default way to explore the file
 %% structure). Note: The oa input parameter is the entry that user, u,
 %% clicked. We assume that u has the privilege to see oa in the
 %% directory tree if this method is invoked.
-predecessor_at(G, U ,AT, Restricted) ->
+predecessor_at(G, U, AT, Restricted) ->
     PCs_covered = lists:sort(find_pc_set(G, AT)),
     F1 = fun(X, {Avail, Not_avail}) ->
 		PCs_required = lists:sort(find_pc_set(G, X)),
@@ -526,10 +548,10 @@ predecessor_at(G, U ,AT, Restricted) ->
 	    %% list with their required PCs and the ARset, PC pairs
 	    %% which they inhere from the border node.
 	    L1 = [{X, PCs_required, PC_ARsets} || {AT_border, PC_ARsets} <- AT_border_nodes,
-						  X <- digraph_utils:reachable([AT_border], G),
+						  Y <- digraph_utils:reachable([AT_border], G),
 						  {X, PCs_required} <- Not_avail,
-						  X =:= X],
-	    %% Yhis function checks that all required PCs are covered
+						  X =:= Y],
+	    %% This function checks that all required PCs are covered
 	    %% by PC, ARset pairs and if so,, if the ARset does
 	    %% contain the desired access rights. As a bonus, if the
 	    %% conditions are met, the function returns a tuple {true,
@@ -640,6 +662,12 @@ elements_intersection(G, [AT | Rest]) ->
 
 %%%===================================================================
 %%% Tests
+%%%
+%%% A set of really minimal tests. These tests don't test for the
+%%% functions to be correct but are only used to check if they don't
+%%% crash. Also, they are here as a reminder how to use the
+%%% functions. For testing the functionality of the functions, more
+%%% elaborate data sets must be developed.
 %%%===================================================================
 
 -ifdef(EUNIT).
@@ -675,11 +703,13 @@ server_cleanup(Dir) ->
 
 tsts(_Pids) ->
     {ok, G} = pm_pap:get_digraph(),
-    M = pm1(), % Populate PM
-    [tst_find_border_at_priv(G, M),
-     tst_calc_priv(G, M),
-     tst_show_accessible_ats(G, M),
-     tst_vis_initial_at(G, M)
+    M1 = pm1(), % Populate PM
+    M2 = pm2(), % Populate PM
+    [tst_find_border_at_priv(G, M1),
+     tst_calc_priv(G, M1),
+     tst_show_accessible_ats(G, M1),
+     tst_vis_initial_at(G, M1),
+     tst_predecessor_at(G, M2)
     ].
 
 %% @doc Recursive lists sort. Sort list and if an element of the list
@@ -722,6 +752,31 @@ pm1() ->
     #{pc1 => PC1, pc2 => PC2, pc3 => PC3,
       ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
       oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2}.
+
+pm2() ->
+    {ok, PC1} = pm_pap:c_pc(#pc{value="pc1"}),
+    {ok, PC2} = pm_pap:c_pc(#pc{value="pc2"}),
+    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC1),
+    {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
+    ok = pm_pap:c_ua_to_pc(UA2, PC2),
+    {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
+    {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
+    {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
+    
+    {ok, OA21} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC1),
+    {ok, OA20} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA21),
+    ok = pm_pap:c_oa_to_pc(OA20, PC2),
+    {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA20),
+    {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA20),
+
+    {ok, _Assoc1} = pm_pap:c_assoc(UA1, [#ar{id = 'r'}], OA21),
+    {ok, _Assoc2} = pm_pap:c_assoc(UA2, [#ar{id = 'r'}], OA20),
+    {ok, _Assoc3} = pm_pap:c_assoc(UA3, [#ar{id = 'w'}], O2),
+    #{pc1 => PC1, pc2 => PC2,
+      ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
+      oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2
+     }.
+
 
 tst_find_border_at_priv(G, M) ->
     #{pc1 := #pc{id = PC1}, pc3 := #pc{id = PC3}, 
@@ -774,10 +829,6 @@ tst_show_accessible_ats(G, M) ->
     ].
 
 tst_vis_initial_at(G, M) ->
-    %% NB: THIS TEST CAN FAIL EASILY IF THE SUBLISTS FOR THE PC,
-    %% ACCESS RIGHTS HAVE A DIFFERENT ORDERING THAN THE ONES RETURNED
-    %% FROM THE TESTED FUNCTIONS. MAYBE USE SOME RECURSIVE LISTS SORT
-    %% ON BOTH THE EXPECTED AND RETURNED VALUES?
     #{pc1 := #pc{id = PC1}, pc3 := #pc{id = PC3}, 
       u1 := #u{id = U1}, u2 := #u{id = U2},
       oa21 := #oa{id = OA21}} = M,
@@ -789,4 +840,17 @@ tst_vis_initial_at(G, M) ->
 		   sort(pm_mell:vis_initial_at_RESTRICTED(G, U1))),
      ?_assertEqual(sort([{OA21, [{PC1, [r]}]}]),
 		   sort(pm_mell:vis_initial_at_RESTRICTED(G, U2)))].
+
+tst_predecessor_at(G, M) ->
+    #{u1 := #u{id = U1}, u2 := #u{id = U2},
+      oa20 := #oa{id = OA20}, oa21 := #oa{id = OA21}} = M,
+    [?_assertEqual(sort([OA20]),
+		   sort(pm_mell:predecessor_at_ANSI(G, U1, OA21))),
+     ?_assertEqual([],
+		   sort(pm_mell:predecessor_at_ANSI(G, U2, OA21))),
+     ?_assertEqual(sort([OA20]),
+		   sort(pm_mell:predecessor_at_RESTRICTED(G, U1, OA21))),
+     ?_assertEqual([],
+		   sort(pm_mell:predecessor_at_RESTRICTED(G, U2, OA21)))].
+
 -endif.
