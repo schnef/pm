@@ -11,7 +11,7 @@
 	 access_ANSI/4, access_RESTRICTED/4,
 	 show_accessible_ats_ANSI/2, show_accessible_ats_RESTRICTED/2,
 	 vis_initial_at_ANSI/2, vis_initial_at_RESTRICTED/2,
-	 predecessor_oa/3, successor_oa/3,
+	 predecessor_at/4, successor_at/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
 %% This function takes a digraph and outputs dot formatted output for displaying the graph.
@@ -312,7 +312,7 @@ calc_priv_RESTRICTED(G, U ,AT_target) ->
 %%    a set of access rights the user holds over the target AT.
 %%
 %% The current goal is to get something working, hopefully correctly.
-calc_priv(G, U ,AT_target, Restricted) ->
+calc_priv(G, U, AT_target, Restricted) ->
     %% TODO: Is it correct to assume that the target AT itself may be a
     %% border AT? I.e. use `digraph_utils:reachable' instead of
     %% `digraph_utils:reachable_neighbours'. Also note that the target
@@ -504,13 +504,52 @@ select_arsets(G, {AT, PC_ARsets}, Restricted) ->
 %% structure). Note: The oa input parameter is the entry that user, u,
 %% clicked. We assume that u has the privilege to see oa in the
 %% directory tree if this method is invoked.
-predecessor_oa(G, U ,OA) ->
-    OAs = [AT || {Tag, _} = AT <- digraph:out_neighbours(G, OA),
-		 Tag =:= oa orelse Tag =:= ua].
+predecessor_at(G, U ,AT, Restricted) ->
+    PCs_covered = lists:sort(find_pc_set(G, AT)),
+    F1 = fun(X, {Avail, Not_avail}) ->
+		PCs_required = lists:sort(find_pc_set(G, X)),
+		case PCs_covered =:= PCs_required of
+		    true ->
+			{[X | Avail], Not_avail};
+		    false ->
+			{Avail, [{X, PCs_required} | Not_avail]}
+		end
+	end,
+    {Avail, Not_avail} = lists:foldl(F1, {[], []}, digraph:in_neighbours(G, AT)),
+    case Not_avail of
+	[] ->
+	    Avail;
+	_ ->
+	    AT_border_nodes = find_border_at_priv(G, U, Restricted),
+	    Desired_ARset = sets:from_list(?VISIBLE_AR_REQUIRED),
+	    %% Build a list with all predecessors on the non available
+	    %% list with their required PCs and the ARset, PC pairs
+	    %% which they inhere from the border node.
+	    L1 = [{X, PCs_required, PC_ARsets} || {AT_border, PC_ARsets} <- AT_border_nodes,
+						  X <- digraph_utils:reachable([AT_border], G),
+						  {X, PCs_required} <- Not_avail,
+						  X =:= X],
+	    %% Yhis function checks that all required PCs are covered
+	    %% by PC, ARset pairs and if so,, if the ARset does
+	    %% contain the desired access rights. As a bonus, if the
+	    %% conditions are met, the function returns a tuple {true,
+	    %% Value}, so a filtermap function can be used.
+	    F2 = fun({X, PCs_required, PC_ARsets}) ->
+			 lists:all(fun(PC_required) ->
+					   case lists:keyfind(PC_required, 1, PC_ARsets) of
+					       {_PC, ARset} ->
+						   sets:is_subset(Desired_ARset, ARset);
+					       false ->
+						   false
+					   end
+				   end, PCs_required) andalso {true, X}
+		 end,
+	    Avail ++ lists:filtermap(F2, L1)
+    end.
 
 %% @doc This returns the set of valid parent nodes for oa given that
 %% the user is u.
-successor_oa(G, U, OA) ->
+successor_at(G, U, AT) ->
     [].
 
 %% @doc This returns the set of nodes that are accessible by u but not

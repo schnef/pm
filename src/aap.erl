@@ -170,6 +170,30 @@ g() ->
       %% pc2 => PC2, ua4 => UA4, ua5 => UA5, ua6 => UA6
      }.
 
+g1() ->
+    {ok, PC1} = pm_pap:c_pc(#pc{value="pc1"}),
+    {ok, PC2} = pm_pap:c_pc(#pc{value="pc2"}),
+    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC1),
+    {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
+    ok = pm_pap:c_ua_to_pc(UA2, PC2),
+    {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
+    {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
+    {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
+    
+    {ok, OA21} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC1),
+    {ok, OA20} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA21),
+    ok = pm_pap:c_oa_to_pc(OA20, PC2),
+    {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA20),
+    {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA20),
+
+    {ok, _Assoc1} = pm_pap:c_assoc(UA1, [#ar{id = 'r'}], OA21),
+    {ok, _Assoc2} = pm_pap:c_assoc(UA2, [#ar{id = 'r'}], OA20),
+    {ok, _Assoc3} = pm_pap:c_assoc(UA3, [#ar{id = 'w'}], O2),
+    #{pc1 => PC1, pc2 => PC2,
+      ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
+      oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2
+     }.
+
 tst1() ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
@@ -208,6 +232,15 @@ tst4(Flag) ->
     #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
     [pm_mell:find_border_at_priv(G, U, Flag) || U <- [U1, U2]].
 
+tst5(Flag) ->
+    pm_pap:clear(),
+    {ok, G} = pm_pap:get_digraph(),
+    M = g1(),
+    pm_mell:gv(G),
+    #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
+    [{OA, _} | _] = pm_mell:find_border_at_priv(G, U1, Flag),
+    pm_mell:predecessor_at(G, U1, OA, Flag).
+    
 
 %% =============================================================================
 %% Digraph
