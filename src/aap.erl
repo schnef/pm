@@ -277,6 +277,17 @@ tst6(Flag) ->
       o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
     pm_mell:successor_at(G, U1, OA20, Flag).
     
+tst7(Flag) ->
+    pm_pap:clear(),
+    {ok, G} = pm_pap:get_digraph(),
+    M = g2(),
+    pm_mell:gv(G),
+    #{pc1 := #pc{id = PC1}, pc2 := #pc{id = PC2},
+      ua1 := #ua{id = UA1}, ua2 := #ua{id = UA2}, ua3 := #ua{id = UA3},
+      u1 := #u{id = U1}, u2 := #u{id = U2},
+      oa21 := #oa{id = OA21}, oa20 := #oa{id = OA20},
+      o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
+    pm_mell:find_orphan_objects(G, U2, Flag).
 
 %% =============================================================================
 %% Digraph

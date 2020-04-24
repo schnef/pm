@@ -13,7 +13,7 @@
 	 vis_initial_at_ANSI/2, vis_initial_at_RESTRICTED/2,
 	 predecessor_at_ANSI/3, predecessor_at_RESTRICTED/3,
 	 successor_at_ANSI/3, successor_at_RESTRICTED/3,
-	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
+	 find_orphan_objects/3, show_ua/2, check_prohibitions/5]).
 
 %% This function takes a digraph and outputs dot formatted output for displaying the graph.
 gv(G) ->
@@ -481,7 +481,7 @@ vis_initial_at(G, U, Restricted) ->
     F1b = fun({AT, PC_ARsets} = AT_node) ->
     		  ARsets = select_arsets(G, AT_node, Restricted),
     		  lists:any(F1a, ARsets) andalso
-		      {true, {AT, [{PC, sets:to_list(ARset)} || {PC, ARset} <- PC_ARsets]}}
+		      {true, {AT, PC_ARsets}}
     	  end,
     lists:filtermap(F1b, AT_border_nodes).
     %% F1b = fun(AT_node) ->
@@ -613,8 +613,100 @@ select_ats(L, Desired_ARset) ->
 %% of the intervening object attribute nodes are not accessible. This
 %% is not expected to be a normal occurrence (and does not occur in
 %% any of our current example graphs).
-find_orphan_objects(G, U) ->
-    [].
+%%
+%% 1. Use algorithm vis_initial_oa(u) to find the set of visible border
+%%    oa nodes (ANSI or RESTRICTED versions as appropriate).
+%% 2. Create a hash table with the keys being node names and the each
+%%    value being a set of privilege/PC pairings (note that duplicates
+%%    will be automatically discarded)
+%% 3. From each visible border oa node, x, BFS up (traversing the edges
+%%    backwards) over the object DAG (i.e., don't traverse any ua->oa
+%%    edges). Add each visited node to the hash table (if it isn't
+%%    already there) and add x's privilege/PC pairings to the value of
+%%    the visited node's entry.
+%% 4. For each key in the hash table, x, execute find_pc_set(x) to find
+%%    the required PCs. If the value field for x does not contain some
+%%    privilege for which all required PCs are covered, then delete this
+%%    key from the hash table. In more detail, the value set must have
+%%    privilege/PC pairings with some privilege, p, where the associated
+%%    PCs in the pairings with p must be a superset of the required
+%%    PCs. The resulting hash table will contain only nodes that are
+%%    accessible to u.
+%% 5. For each key, x, in the reduced hash table that references an
+%%    object (not an oa), BFS down attempting to reach a visible border
+%%    oa node. However, only traverse nodes that are in the hash
+%%    table. Note that nodes not in the hash table are either not
+%%    accessible to u or will not provide a path to one of the visible
+%%    border oa nodes. If the BFS terminates without reaching a visible
+%%    border oa node, add x to the list of orphaned objects.
+%% 6. Return list of orphaned objects.
+%%
+find_orphan_objects(G, U, Restricted) ->
+    Visible_border_nodes = vis_initial_at(G, U, Restricted),
+    io:format("Visible_border_nodes ~p~n", [Visible_border_nodes]),
+    %% Create the list of nodes, including the visible border nodes,
+    %% with the accumulated PC, Access right pairs. Use reaching and
+    %% not reaching neighbours to include the visible border nodes
+    %% (AT) as well.
+    L1 = [{X, PC_ARsets}
+	  || {AT, PC_ARsets} <- Visible_border_nodes,
+	     {Tag, _} = X <- digraph_utils:reaching([AT], G),
+	     Tag =/= pc],
+    io:format("L2 ~p~n", [L1]),
+    
+    %% The next two functions and the following fold will take the
+    %% previous list and turn it into a map with the nodes as the keys
+    %% and the values the merged lists of PC, access right pairs. This
+    %% is step 3, but with the value not being a set but a list
+    %% instead, i.e. duplicate pairs are deleted.  F1 takes a pair PC,
+    %% ARset and a list of PC, ARsets pairs and merge the first pair
+    %% into the list. If the PC from the first pair is already in the
+    %% pairs list, the ARset from the first pair is merged using a set
+    %% union in the ARset found in the list
+    F1 = fun({PC, ARset1}, PC_ARsets) ->
+		 case lists:keytake(PC, 1, PC_ARsets) of
+		     {value, {_PC, ARset2}, PC_ARsets1} ->
+			 [{PC, sets:union(ARset1, ARset2)} | PC_ARsets1];
+		     false ->
+			 [{PC, ARset1} | PC_ARsets]
+		 end
+	 end,
+    F2 = fun({X, PC_ARsets1}, Acc) ->
+    		 case Acc of
+    	 	     #{X := Value} ->
+			 Acc#{X := lists:foldl(F1, Value, PC_ARsets1)};
+		     _ ->
+			 Acc#{X => PC_ARsets1}
+		 end
+	 end,
+    L2 = lists:foldl(F2, #{}, L1),
+    io:format("L2 ~p~n", [L2]).
+    %% F1 = fun({PC, ARset1}, Value) ->
+    %% 		 ARset3 = case Value of
+    %% 			       #{PC := ARset2} ->
+    %% 				   sets:intersection(ARset1, ARset2);
+    %% 			       _ ->
+    %% 				   ARset1
+    %% 			   end,
+    %% 		  sets:is_empty(ARset3) andalso {true, Value#{PC := ARset3}}
+    %% 	  end,
+    %% F2 = fun({X, PC_ARsets1}, Acc) ->
+    %% 		 case Acc of
+    %% 	 	     #{X := Value} ->
+%% 	 		 Acc#{X := case Value of
+    %% 	 			       #{PC := ARset2} ->
+    %% 	 				   ARset3 = sets:intersection(ARset1, ARset2),
+    %% 	 				   Value#{PC := ARset3};
+    %% 	 			       _ ->
+    %% 	 				   Value#{PC => ARset1}
+    %% 	 			   end};
+    %% 	 	     _ ->
+    %% 	 		 Acc#{X => #{PC => ARset1}}
+    %% 	 	 end
+    %% 	 end,
+    %% M1 = lists:foldl(F2, #{}, L2).
+
+    
 
 %% @doc This returns the set of descendants for node ua. Note, ua may
 %% actual be a user instead of a user attribute.
@@ -693,6 +785,17 @@ elements_intersection(G, [AT | Rest]) ->
 	end,
     lists:foldl(F, sets:from_list(pm_pap:elements(G, AT)), Rest).
 
+%% @doc Check on equality of two sets. Two versions: one first
+%% compares the sizes and if these match it checks ia one set is the
+%% subset of the other, which must be true if sets are equal, The
+%% second one checks set A to be a subset of B and vice versa. The
+%% first version probably is faster since the sizes can be fetched
+%% from the sets directly and the is_subset function is executed only
+%% once.
+sets_equal(A, B) ->
+    sets:size(A) =:= sets:size(B) andalso sets:is_subset(A, B).
+    %% sets:is_subset(A, B) andalso sets:is_subset(B, A).
+
 
 %%%===================================================================
 %%% Tests
@@ -758,10 +861,6 @@ sort(L) ->
 	end,
     L1 = lists:keysort(1, L),
     lists:map(F, L1).
-
-%% @doc Check on quality of two sets
-sets_equal(S1, S2) ->
-    sets:is_subset(S1, S2) andalso sets:is_subset(S2, S1).
 
 %% The following function(s) create simple PMs.
 pm1() ->
@@ -891,13 +990,14 @@ tst_vis_initial_at(G, M) ->
     #{pc1 := #pc{id = PC1}, pc3 := #pc{id = PC3}, 
       u1 := #u{id = U1}, u2 := #u{id = U2},
       oa21 := #oa{id = OA21}} = M,
-    [?_assertEqual(sort([{OA21, [{PC1, [r]}, {PC3, [r]}]}]),
+    R_arset = sets:from_list([r]),
+    [?_assertEqual(sort([{OA21, [{PC1, R_arset}, {PC3, R_arset}]}]),
 		   sort(pm_mell:vis_initial_at_ANSI(G, U1))),
-     ?_assertEqual(sort([{OA21, [{PC1, [r]}, {PC3, [r]}]}]),
+     ?_assertEqual(sort([{OA21, [{PC1, R_arset}, {PC3, R_arset}]}]),
 		   sort(pm_mell:vis_initial_at_ANSI(G, U2))),
-     ?_assertEqual(sort([{OA21, [{PC1, [r]}]}]),
+     ?_assertEqual(sort([{OA21, [{PC1, R_arset}]}]),
 		   sort(pm_mell:vis_initial_at_RESTRICTED(G, U1))),
-     ?_assertEqual(sort([{OA21, [{PC1, [r]}]}]),
+     ?_assertEqual(sort([{OA21, [{PC1, R_arset}]}]),
 		   sort(pm_mell:vis_initial_at_RESTRICTED(G, U2)))].
 
 tst_predecessor_at(G, M) ->
