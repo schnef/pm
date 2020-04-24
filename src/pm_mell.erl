@@ -12,7 +12,7 @@
 	 show_accessible_ats_ANSI/2, show_accessible_ats_RESTRICTED/2,
 	 vis_initial_at_ANSI/2, vis_initial_at_RESTRICTED/2,
 	 predecessor_at_ANSI/3, predecessor_at_RESTRICTED/3,
-	 successor_at/3,
+	 successor_at_ANSI/3, successor_at_RESTRICTED/3,
 	 find_orphan_objects/2, show_ua/2, check_prohibitions/5]).
 
 %% This function takes a digraph and outputs dot formatted output for displaying the graph.
@@ -480,12 +480,8 @@ vis_initial_at(G, U, Restricted) ->
 	  end,
     F1b = fun({AT, PC_ARsets} = AT_node) ->
     		  ARsets = select_arsets(G, AT_node, Restricted),
-    		  case lists:any(F1a, ARsets) of
-    		      true ->
-    			  {true, {AT, [{PC, sets:to_list(ARset)} || {PC, ARset} <- PC_ARsets]}};
-    		      false ->
-    			  false
-    		  end
+    		  lists:any(F1a, ARsets) andalso
+		      {true, {AT, [{PC, sets:to_list(ARset)} || {PC, ARset} <- PC_ARsets]}}
     	  end,
     lists:filtermap(F1b, AT_border_nodes).
     %% F1b = fun(AT_node) ->
@@ -529,7 +525,7 @@ predecessor_at_RESTRICTED(G, U, AT) ->
 predecessor_at(G, U, AT, Restricted) ->
     PCs_covered = lists:sort(find_pc_set(G, AT)),
     F1 = fun(X, {Avail, Not_avail}) ->
-		PCs_required = lists:sort(find_pc_set(G, X)),
+		 PCs_required = lists:sort(find_pc_set(G, X)),
 		case PCs_covered =:= PCs_required of
 		    true ->
 			{[X | Avail], Not_avail};
@@ -547,33 +543,65 @@ predecessor_at(G, U, AT, Restricted) ->
 	    %% Build a list with all predecessors on the non available
 	    %% list with their required PCs and the ARset, PC pairs
 	    %% which they inhere from the border node.
-	    L1 = [{X, PCs_required, PC_ARsets} || {AT_border, PC_ARsets} <- AT_border_nodes,
-						  Y <- digraph_utils:reachable([AT_border], G),
-						  {X, PCs_required} <- Not_avail,
-						  X =:= Y],
-	    %% This function checks that all required PCs are covered
-	    %% by PC, ARset pairs and if so,, if the ARset does
-	    %% contain the desired access rights. As a bonus, if the
-	    %% conditions are met, the function returns a tuple {true,
-	    %% Value}, so a filtermap function can be used.
-	    F2 = fun({X, PCs_required, PC_ARsets}) ->
-			 lists:all(fun(PC_required) ->
-					   case lists:keyfind(PC_required, 1, PC_ARsets) of
-					       {_PC, ARset} ->
-						   sets:is_subset(Desired_ARset, ARset);
-					       false ->
-						   false
-					   end
-				   end, PCs_required) andalso {true, X}
-		 end,
-	    Avail ++ lists:filtermap(F2, L1)
+	    L1 = [{X, PCs_required, PC_ARsets}
+		  || {AT_border, PC_ARsets} <- AT_border_nodes,
+		     Y <- digraph_utils:reachable([AT_border], G),
+		     {X, PCs_required} <- Not_avail,
+		     X =:= Y],
+	    Avail ++ select_ats(L1, Desired_ARset)
     end.
 
+-spec successor_at_ANSI(G, U, AT) -> [AT] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id().
 %% @doc This returns the set of valid parent nodes for oa given that
 %% the user is u.
-successor_at(G, U, AT) ->
-    [].
+successor_at_ANSI(G, U, AT) ->
+    successor_at(G, U, AT, false).
 
+-spec successor_at_RESTRICTED(G, U, AT) ->[AT] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id().
+%% @doc This returns the set of valid parent nodes for oa given that
+%% the user is u.
+successor_at_RESTRICTED(G, U, AT) ->
+    successor_at(G, U, AT, true).
+
+successor_at(G, U, AT, Restricted) ->
+    AT_border_nodes = find_border_at_priv(G, U, Restricted),
+    Desired_ARset = sets:from_list(?VISIBLE_AR_REQUIRED),
+    %% Build a list with all successors which are out neighbours and
+    %% reaching to the border nodes, along with their required PCs
+    %% and the ARset, PC pairs which they inhere from the border
+    %% node. 
+    Successor_nodes = [X || {Tag, _} = X <- digraph:out_neighbours(G, AT), Tag =/= pc],
+    L = [{X, find_pc_set(G, X), PC_ARsets}
+	 || {AT_border, PC_ARsets} <- AT_border_nodes,
+	    X <- digraph_utils:reaching([AT_border], G),
+	    lists:member(X, Successor_nodes)],
+    select_ats(L, Desired_ARset).
+    
+%% @doc Select the ATs from the list L such that all required PCs are
+%% covered by PC, ARset pairs and if so, the ARset does contain the
+%% desired access rights. As a bonus, if the conditions are met, the
+%% function returns a tuple {true, Value}, so a filtermap function can
+%% be used.
+select_ats(L, Desired_ARset) ->    
+    F = fun({AT, PCs_required, PC_ARsets}) ->
+		lists:all(fun(PC_required) ->
+				  case lists:keyfind(PC_required, 1, PC_ARsets) of
+				      {_PC, ARset} ->
+					  sets:is_subset(Desired_ARset, ARset);
+				      false ->
+					  false
+				  end
+			  end, PCs_required) andalso
+		    {true, AT}
+	end,
+    lists:filtermap(F, L).
+    
 %% @doc This returns the set of nodes that are accessible by u but not
 %% reachable through the visualization interface because one or more
 %% of the intervening object attribute nodes are not accessible. This
@@ -705,11 +733,13 @@ tsts(_Pids) ->
     {ok, G} = pm_pap:get_digraph(),
     M1 = pm1(), % Populate PM
     M2 = pm2(), % Populate PM
+    M3 = pm3(), % Populate PM
     [tst_find_border_at_priv(G, M1),
      tst_calc_priv(G, M1),
      tst_show_accessible_ats(G, M1),
      tst_vis_initial_at(G, M1),
-     tst_predecessor_at(G, M2)
+     tst_predecessor_at(G, M2),
+     tst_successor_at(G, M3)
     ].
 
 %% @doc Recursive lists sort. Sort list and if an element of the list
@@ -777,6 +807,29 @@ pm2() ->
       oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2
      }.
 
+pm3() ->
+    {ok, PC1} = pm_pap:c_pc(#pc{value="pc1"}),
+    {ok, PC2} = pm_pap:c_pc(#pc{value="pc2"}),
+    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC1),
+    {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
+    {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
+    {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
+    {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
+    
+    {ok, OA21} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC1),
+    {ok, OA22} =  pm_pap:c_oa_in_pc(#oa{value="oa22"}, PC2),
+    {ok, OA20} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA21),
+    ok = pm_pap:c_oa_to_oa(OA20, OA22),
+    {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA20),
+    {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA20),
+
+    {ok, _Assoc1} = pm_pap:c_assoc(UA1, [#ar{id = 'r'}], OA21),
+    {ok, _Assoc2} = pm_pap:c_assoc(UA1, [#ar{id = 'r'}], OA22),
+    {ok, _Assoc3} = pm_pap:c_assoc(UA3, [#ar{id = 'w'}], O2),
+    #{pc1 => PC1, pc2 => PC2,
+      ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
+      oa22 => OA22, oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2
+     }.
 
 tst_find_border_at_priv(G, M) ->
     #{pc1 := #pc{id = PC1}, pc3 := #pc{id = PC3}, 
@@ -844,13 +897,25 @@ tst_vis_initial_at(G, M) ->
 tst_predecessor_at(G, M) ->
     #{u1 := #u{id = U1}, u2 := #u{id = U2},
       oa20 := #oa{id = OA20}, oa21 := #oa{id = OA21}} = M,
-    [?_assertEqual(sort([OA20]),
-		   sort(pm_mell:predecessor_at_ANSI(G, U1, OA21))),
+    [?_assertEqual(lists:sort([OA20]),
+		   lists:sort(pm_mell:predecessor_at_ANSI(G, U1, OA21))),
      ?_assertEqual([],
-		   sort(pm_mell:predecessor_at_ANSI(G, U2, OA21))),
-     ?_assertEqual(sort([OA20]),
-		   sort(pm_mell:predecessor_at_RESTRICTED(G, U1, OA21))),
+		   lists:sort(pm_mell:predecessor_at_ANSI(G, U2, OA21))),
+     ?_assertEqual(lists:sort([OA20]),
+		   lists:sort(pm_mell:predecessor_at_RESTRICTED(G, U1, OA21))),
      ?_assertEqual([],
-		   sort(pm_mell:predecessor_at_RESTRICTED(G, U2, OA21)))].
+		   lists:sort(pm_mell:predecessor_at_RESTRICTED(G, U2, OA21)))].
+
+tst_successor_at(G, M) ->
+    #{u1 := #u{id = U1}, u2 := #u{id = U2},
+      oa20 := #oa{id = OA20}, oa21 := #oa{id = OA21}, oa22 := #oa{id = OA22}} = M,
+    [?_assertEqual(lists:sort([OA21, OA22]),
+		   lists:sort(pm_mell:successor_at_ANSI(G, U1, OA20))),
+     ?_assertEqual(lists:sort([OA21, OA22]),
+		   lists:sort(pm_mell:successor_at_ANSI(G, U2, OA20))),
+     ?_assertEqual(lists:sort([OA21]),
+		   lists:sort(pm_mell:successor_at_RESTRICTED(G, U1, OA20))),
+     ?_assertEqual(lists:sort([OA21]),
+		   lists:sort(pm_mell:successor_at_RESTRICTED(G, U2, OA20)))].
 
 -endif.
