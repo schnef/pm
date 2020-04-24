@@ -504,7 +504,7 @@ select_arsets(G, {AT, PC_ARsets}, Restricted) ->
       G :: digraph:graph(),
       U :: pm:id(),
       AT :: pm:id().
-%% @doc This returns the next hierarchical level of oa nodes
+%% @doc This returns the next hierarchical level of AT nodes
 predecessor_at_ANSI(G, U, AT) ->
     predecessor_at(G, U, AT, false).
 
@@ -512,16 +512,16 @@ predecessor_at_ANSI(G, U, AT) ->
       G :: digraph:graph(),
       U :: pm:id(),
       AT :: pm:id().
-%% @doc This returns the next hierarchical level of oa nodes
+%% @doc This returns the next hierarchical level of AT nodes
 predecessor_at_RESTRICTED(G, U, AT) ->
     predecessor_at(G, U, AT, true).
 
-%% @doc This returns the next hierarchical level of oa nodes to
-%% display given a user and a target object attribute (using the
-%% access graph structure as a default way to explore the file
-%% structure). Note: The oa input parameter is the entry that user, u,
-%% clicked. We assume that u has the privilege to see oa in the
-%% directory tree if this method is invoked.
+%% @doc This returns the next hierarchical level of AT nodes to
+%% display given a user and a target attribute (using the access graph
+%% structure as a default way to explore the file structure). Note:
+%% The AT input parameter is the entry that user, U, clicked. We
+%% assume that U has the privilege to see AT in the directory tree if
+%% this method is invoked.
 predecessor_at(G, U, AT, Restricted) ->
     PCs_covered = lists:sort(find_pc_set(G, AT)),
     F1 = fun(X, {Avail, Not_avail}) ->
@@ -569,6 +569,12 @@ successor_at_ANSI(G, U, AT) ->
 successor_at_RESTRICTED(G, U, AT) ->
     successor_at(G, U, AT, true).
 
+%% @doc This returns the valid parent nodes of AT nodes to display
+%% given a user and a target attribute (using the access graph
+%% structure as a default way to explore the file structure). Note:
+%% The AT input parameter is the entry that user, U, clicked. We
+%% assume that U has the privilege to see AT in the directory tree if
+%% this method is invoked.
 successor_at(G, U, AT, Restricted) ->
     AT_border_nodes = find_border_at_priv(G, U, Restricted),
     Desired_ARset = sets:from_list(?VISIBLE_AR_REQUIRED),
