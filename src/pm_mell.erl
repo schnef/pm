@@ -749,9 +749,9 @@ ckeck_pc_arset(PC_ARsets, [PC_required | PCs_required], ARset1) ->
 
 %% @doc This returns the set of descendants for node ua. Note, ua may
 %% actual be a user instead of a user attribute.
-show_ua(G, UA) ->
-    [].
-
+show_ua(G, {Tag1, _} = UA1) when Tag1 =:= u; Tag1 =:= ua ->
+    [UA2 || {Tag2, _} = UA2 <- digraph:out_neighbours(G, UA1),
+	    Tag2 =/= pc].
 
 %% TDOO: improve specs by giving a more specific type for Candidates,
 %% ATIs etc.
@@ -887,7 +887,8 @@ tsts(_Pids) ->
      tst_show_accessible_ats(G, M1),
      tst_vis_initial_at(G, M1),
      tst_predecessor_at(G, M2),
-     tst_successor_at(G, M3)
+     tst_successor_at(G, M3),
+     tst_show_ua(G, M1)
     ].
 
 %% @doc Recursive lists sort. Sort list and if an element of the list
@@ -1062,5 +1063,13 @@ tst_successor_at(G, M) ->
 		   lists:sort(pm_mell:successor_at_RESTRICTED(G, U1, OA20))),
      ?_assertEqual(lists:sort([OA21]),
 		   lists:sort(pm_mell:successor_at_RESTRICTED(G, U2, OA20)))].
+
+tst_show_ua(G, M) ->
+    #{u1 := #u{id = U1}, u2 := #u{id = U2},
+      ua2 := #ua{id = UA2}, ua3 := #ua{id = UA3}} = M,
+    [?_assertEqual([UA2],
+		   pm_mell:show_ua(G, U1)),
+     ?_assertEqual([UA3],
+		   pm_mell:show_ua(G, U2))].
 
 -endif.

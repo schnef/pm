@@ -289,6 +289,15 @@ tst7(Flag) ->
       o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
     pm_mell:find_orphan_objects(G, U2, Flag).
 
+tst8() ->
+    pm_pap:clear(),
+    {ok, G} = pm_pap:get_digraph(),
+    M = g(),
+    pm_mell:gv(G),
+    #{ua1 := #ua{id = UA1}, ua2 := #ua{id = UA2}, ua3 := #ua{id = UA3},
+      u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
+    [pm_mell:show_ua(G, U) || U <- [U1, U2]].
+
 %% =============================================================================
 %% Digraph
 %% =============================================================================
