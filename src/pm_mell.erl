@@ -1,5 +1,10 @@
 -module(pm_mell).
 
+%% TODO: Look into replacing lists with maps. There are several
+%% functions that search potentially large lists and/or update a list
+%% by replacing elements with new values. Maps may be more
+%% efficient. Currently I stick with lists for consistency.
+
 -include_lib("eunit/include/eunit.hrl").
 -include("pm.hrl").
 
@@ -13,7 +18,8 @@
 	 vis_initial_at_ANSI/2, vis_initial_at_RESTRICTED/2,
 	 predecessor_at_ANSI/3, predecessor_at_RESTRICTED/3,
 	 successor_at_ANSI/3, successor_at_RESTRICTED/3,
-	 find_orphan_objects/3, show_ua/2, check_prohibitions/5]).
+	 find_orphan_objects_ANSI/2, find_orphan_objects_RESTRICTED/2,
+	 show_ua/2, check_prohibitions/5]).
 
 %% This function takes a digraph and outputs dot formatted output for displaying the graph.
 gv(G) ->
@@ -607,8 +613,25 @@ select_ats(L, Desired_ARset) ->
 		    {true, AT}
 	end,
     lists:filtermap(F, L).
-    
+
+-spec find_orphan_objects_ANSI(G, U) -> [AT] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id().
 %% @doc This returns the set of nodes that are accessible by u but not
+%% reachable through the visualization interface
+find_orphan_objects_ANSI(G, U) ->
+    find_orphan_objects(G, U, false).
+
+-spec find_orphan_objects_RESTRICTED(G, U) -> [AT] when
+      G :: digraph:graph(),
+      U :: pm:id(),
+      AT :: pm:id().%% @doc This returns the set of nodes that are accessible by u but not
+%% reachable through the visualization interface
+find_orphan_objects_RESTRICTED(G, U) ->
+    find_orphan_objects(G, U, true).
+
+%% @doc UNFINISHED This returns the set of nodes that are accessible by u but not
 %% reachable through the visualization interface because one or more
 %% of the intervening object attribute nodes are not accessible. This
 %% is not expected to be a normal occurrence (and does not occur in
@@ -641,9 +664,11 @@ select_ats(L, Desired_ARset) ->
 %%    border oa node, add x to the list of orphaned objects.
 %% 6. Return list of orphaned objects.
 %%
+%% TODO: Unfinished implementation. Need some example PM to work with
+%% but can't get one. 
 find_orphan_objects(G, U, Restricted) ->
     Visible_border_nodes = vis_initial_at(G, U, Restricted),
-    io:format("Visible_border_nodes ~p~n", [Visible_border_nodes]),
+    %% io:format("Visible_border_nodes ~p~n", [Visible_border_nodes]),
     %% Create the list of nodes, including the visible border nodes,
     %% with the accumulated PC, Access right pairs. Use reaching and
     %% not reaching neighbours to include the visible border nodes
@@ -652,17 +677,21 @@ find_orphan_objects(G, U, Restricted) ->
 	  || {AT, PC_ARsets} <- Visible_border_nodes,
 	     {Tag, _} = X <- digraph_utils:reaching([AT], G),
 	     Tag =/= pc],
-    io:format("L2 ~p~n", [L1]),
+    %% io:format("L2 ~p~n", [L1]),
     
     %% The next two functions and the following fold will take the
     %% previous list and turn it into a map with the nodes as the keys
-    %% and the values the merged lists of PC, access right pairs. This
-    %% is step 3, but with the value not being a set but a list
-    %% instead, i.e. duplicate pairs are deleted.  F1 takes a pair PC,
-    %% ARset and a list of PC, ARsets pairs and merge the first pair
-    %% into the list. If the PC from the first pair is already in the
-    %% pairs list, the ARset from the first pair is merged using a set
-    %% union in the ARset found in the list
+    %% and as the values the merged lists of PC, access right
+    %% pairs. This is step 3, but with the value not being a set but a
+    %% list instead, i.e. duplicate pairs are deleted.  F1 takes a
+    %% pair PC, ARset and a list of PC, ARsets pairs and merge the
+    %% first pair into the list. If the PC from the first pair is
+    %% already in the pairs list, the ARset from the first pair is
+    %% merged using a set union in the ARset found in the list
+    %%
+    %% NB: F1 and F2 are nearly identical, except for the function
+    %% call to sets:union and lists:foldl. Functions like these are
+    %% all over the program. Generalize?
     F1 = fun({PC, ARset1}, PC_ARsets) ->
 		 case lists:keytake(PC, 1, PC_ARsets) of
 		     {value, {_PC, ARset2}, PC_ARsets1} ->
@@ -672,41 +701,51 @@ find_orphan_objects(G, U, Restricted) ->
 		 end
 	 end,
     F2 = fun({X, PC_ARsets1}, Acc) ->
-    		 case Acc of
-    	 	     #{X := Value} ->
-			 Acc#{X := lists:foldl(F1, Value, PC_ARsets1)};
-		     _ ->
-			 Acc#{X => PC_ARsets1}
+    		 case lists:keytake(X, 1, Acc) of
+		     {value, {_X, PC_ARsets2}, Acc1} ->
+			 [{X, lists:foldl(F1, PC_ARsets2, PC_ARsets1)} | Acc1];
+		     false ->
+			 [{X, PC_ARsets1} | Acc]
 		 end
 	 end,
-    L2 = lists:foldl(F2, #{}, L1),
-    io:format("L2 ~p~n", [L2]).
-    %% F1 = fun({PC, ARset1}, Value) ->
-    %% 		 ARset3 = case Value of
-    %% 			       #{PC := ARset2} ->
-    %% 				   sets:intersection(ARset1, ARset2);
-    %% 			       _ ->
-    %% 				   ARset1
-    %% 			   end,
-    %% 		  sets:is_empty(ARset3) andalso {true, Value#{PC := ARset3}}
-    %% 	  end,
-    %% F2 = fun({X, PC_ARsets1}, Acc) ->
-    %% 		 case Acc of
-    %% 	 	     #{X := Value} ->
-%% 	 		 Acc#{X := case Value of
-    %% 	 			       #{PC := ARset2} ->
-    %% 	 				   ARset3 = sets:intersection(ARset1, ARset2),
-    %% 	 				   Value#{PC := ARset3};
-    %% 	 			       _ ->
-    %% 	 				   Value#{PC => ARset1}
-    %% 	 			   end};
-    %% 	 	     _ ->
-    %% 	 		 Acc#{X => #{PC => ARset1}}
-    %% 	 	 end
-    %% 	 end,
-    %% M1 = lists:foldl(F2, #{}, L2).
+    L2 = lists:foldl(F2, [], L1),
+    %% io:format("L2 ~p~n", [L2]),
+    F4 = fun({X, PC_ARsets}) ->
+		 PCs_required = find_pc_set(G, X),
+		 ckeck_pc_arset(PC_ARsets, PCs_required)
+	 end,
+    L3 = lists:filter(F4, L2),
+    io:format("L3 ~p~n", [L3]),
+    Orphans = [X || {Tag, _} = X <- L3,
+		    Tag =:= o orelse Tag =:= u],
+    io:format("Candidates ~p~n", [Orphans]).
 
-    
+%% @doc This function checks for a) there is a pair PC, ARset for each
+%% required PC and b) these pairs share some common access
+%% rights. E.g. each required PC has for example read access.
+ckeck_pc_arset(PC_ARsets, [PC_required | PCs_required]) ->
+    case lists:keyfind(PC_required, 1, PC_ARsets) of
+	{_PC_required, ARset} ->
+	    ckeck_pc_arset(PC_ARsets, PCs_required, ARset);
+	false ->
+	    false
+    end.
+
+ckeck_pc_arset(_PC_ARsets, [], _ARset1) ->
+    true;
+ckeck_pc_arset(PC_ARsets, [PC_required | PCs_required], ARset1) ->
+    case lists:keyfind(PC_required, 1, PC_ARsets) of
+	{_PC_required, ARset2} ->
+	    ARset3 = sets:intersection(ARset1, ARset2),
+	    case sets:is_empty(ARset3) of
+		true ->
+		    false;
+		false ->
+		    ckeck_pc_arset(PC_ARsets, PCs_required, ARset3)
+		end;
+	false ->
+	    false
+    end.
 
 %% @doc This returns the set of descendants for node ua. Note, ua may
 %% actual be a user instead of a user attribute.
