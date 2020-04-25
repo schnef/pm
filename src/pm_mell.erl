@@ -747,6 +747,9 @@ ckeck_pc_arset(PC_ARsets, [PC_required | PCs_required], ARset1) ->
 	    false
     end.
 
+-spec show_ua(G, UA) -> [UA] when
+      G :: digraph:graph(),
+      UA :: pm:id().
 %% @doc This returns the set of descendants for node ua. Note, ua may
 %% actual be a user instead of a user attribute.
 show_ua(G, {Tag1, _} = UA1) when Tag1 =:= u; Tag1 =:= ua ->
