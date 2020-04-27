@@ -21,6 +21,8 @@
 	 find_orphan_objects_ANSI/2, find_orphan_objects_RESTRICTED/2,
 	 show_ua/2, check_prohibitions/5]).
 
+-define(USE_CACHE, true).
+
 %% This function takes a digraph and outputs dot formatted output for displaying the graph.
 gv(G) ->
     PEs = digraph_utils:topsort(G),
@@ -232,7 +234,13 @@ find_border_at_priv(G, U, Restricted) ->
     lists:map(F4c, Active3).
     
 find_pc_set(G, AT) ->
-    [PC || {pc, _} = PC <- digraph_utils:reachable_neighbours([AT], G)].
+    find_pc_set(G, AT, ?USE_CACHE).
+
+find_pc_set(G, AT, false) ->
+    [PC || {pc, _} = PC <- digraph_utils:reachable_neighbours([AT], G)];
+find_pc_set(_G, AT, true) ->
+    {ok, PCs} = pm_pccache:find_pc_set(AT),
+    PCs.
 
 -spec calc_priv_ANSI(G, U ,AT) -> ARs when
       G :: digraph:graph(),
@@ -827,6 +835,7 @@ elements_intersection(G, [AT | Rest]) ->
 	end,
     lists:foldl(F, sets:from_list(pm_pap:elements(G, AT)), Rest).
 
+%% @private 
 %% @doc Check on equality of two sets. Two versions: one first
 %% compares the sizes and if these match it checks ia one set is the
 %% subset of the other, which must be true if sets are equal, The
@@ -837,7 +846,6 @@ elements_intersection(G, [AT | Rest]) ->
 sets_equal(A, B) ->
     sets:size(A) =:= sets:size(B) andalso sets:is_subset(A, B).
     %% sets:is_subset(A, B) andalso sets:is_subset(B, A).
-
 
 %%%===================================================================
 %%% Tests

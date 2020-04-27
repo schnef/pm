@@ -896,6 +896,7 @@ handle_call(clear, _From, #state{g = G} = State) ->
     pm_pip:delete(G),
     pm_db:clear(),
     G1 = pm_pip:new(),
+    pm_pccache:clear(G1),
     pm_pip:rebuild(G1),
     {reply, ok, State#state{g = G1}};
 handle_call(Request, _From, State) ->

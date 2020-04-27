@@ -3,7 +3,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
--module(pm_sup).
+-module(pm_pccache_sup).
 
 -behaviour(supervisor).
 
@@ -28,20 +28,13 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    Sup_flags = #{},
-    {ok, { Sup_flags, [#{id => pap, start => {pm_pap, start_link, []}},
-		       #{id => pdp, start => {pm_pdp, start_link, []}},
-		       #{id => epp, start => {pm_epp, start_link, []}},
-		       #{id => rap, start => {pm_rap, start_link, []}},
-		       #{id => pep_sup,
-			 start => {pm_pep_sup, start_link, []},
-			 shutdown => infinity,
-			 type => supervisor},
-		       #{id => caches,
-			 start => {pm_pccache_sup, start_link, []},
-			 shutdown => infinity,
-			 type => supervisor}
-		      ]}}.
+    Sup_flags = #{strategy => simple_one_for_one,
+		  intensity => 0,
+		  period => 1},
+    Child_specs = [#{id => cachel,
+		     start => {pm_pccache, start_link, []},
+		     shutdown => brutal_kill}],
+    {ok, {Sup_flags, Child_specs}}.
 
 %%====================================================================
 %% Internal functions
