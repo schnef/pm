@@ -1489,10 +1489,20 @@ tst_users_objects_elements() ->
     {ok, U2} = c_u_in_ua(#u{value = "User u2"}, Auditor),
     {ok, Accounts} = c_oa_in_oa(#oa{value = "accounts"}, Branch_1_obj_attr),
     {ok, O1} = c_o_in_oa(#o{value = "Account o1"}, Accounts),
-    [?_assertEqual(lists:sort([U1, U2]), lists:sort(users(Branch_1_usr_attr))),
-     ?_assertEqual([O1], objects(Branch_1_obj_attr)),
-     ?_assertEqual(lists:sort([Branch_1_usr_attr, Branch_1_obj_attr, Teller, Auditor, U1, U2, Accounts, O1]),
-		   lists:sort(elements(PC)))].
+    [?_assertEqual(lists:sort([U1#u.id, U2#u.id]), lists:sort(users(Branch_1_usr_attr))),
+     ?_assertEqual([O1#o.id], objects(Branch_1_obj_attr)),
+     ?_assertEqual([O1#o.id], objects(Accounts)),
+     ?_assertEqual([O1#o.id], objects(O1)),
+     ?_assertEqual(lists:sort([Branch_1_usr_attr#ua.id, Branch_1_obj_attr#oa.id,
+			       Teller#ua.id, Auditor#ua.id, U1#u.id, U2#u.id,
+			       Accounts#oa.id, O1#o.id, PC#pc.id]),
+		   lists:sort(elements(PC))),
+     ?_assertEqual(lists:sort([U1#u.id, Teller#ua.id]), lists:sort(elements(Teller))),
+     ?_assertEqual(lists:sort([U2#u.id, Auditor#ua.id]), lists:sort(elements(Auditor))),
+     ?_assertEqual(lists:sort([U1#u.id, U2#u.id, Teller#ua.id, Auditor#ua.id,
+			       Branch_1_usr_attr#ua.id]), lists:sort(elements(Branch_1_usr_attr))),
+     ?_assertEqual([O1#o.id, Accounts#oa.id, Branch_1_obj_attr#oa.id], elements(Branch_1_obj_attr)),
+     ?_assertEqual([O1#o.id, Accounts#oa.id], elements(Accounts))].
 
 tst_icap_iae() ->
     {ok, PC} = pm_pap:c_pc(#pc{}),

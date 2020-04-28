@@ -574,28 +574,36 @@ rebuild_child(G, #assign{a = X, b = Y} = Assign) ->
 -spec users(G, UA) -> [U] when
       G :: digraph:graph(),
       UA :: pm:ua() | pm:id(),
-      U :: pm:u().
-%% @doc Contained Users Mapping: the `users' function represents the
-%% mapping from a user attribute to the set of users that are
-%% contained by that user attribute `UA'.
+      U :: pm:id().
+%% @doc The contained users mapping `users' function is a total
+%% function from UA to 2^U, which represents the mapping from a user
+%% attribute to the set of users that are contained by that user
+%% attribute. Intuitively, the function `users(UA)' returns the set of
+%% users that are contained by or possess the characteristics of the
+%% user attribute UA.
 users(G, #ua{id = X}) -> 
     users(G, X);
 users(G, X) -> 
-    [U || {u, _} = Id <- digraph_utils:reaching_neighbours([X], G),
-	  U <- mnesia:dirty_read(u, Id)].
+    [U || {u, _} = U <- digraph_utils:reaching_neighbours([X], G)].
 
 -spec objects(G, OA) -> [O] when
       G :: digraph:graph(),
       OA :: pm:oa() | pm:id(),
-      O :: pm:o().
-%% @doc Reflexive and Contained Objects Mapping: the `objects'
-%% function represents the mapping from a object attribute to the set
-%% of objects that are contained by that object attribute `OA'.
-objects(G, #oa{id = X}) ->
+      O :: pm:id().
+%% @doc the reflexive and contained objects mapping `objects' function
+%% represents the mapping from an object attribute to the set of
+%% objects that are contained by that object attribute. Intuitively,
+%% the function `objects(OA)' returns the set of objects that are
+%% contained by or possess the characteristics of the object attribute
+%% OA.  Since all objects are, by definition, members of the set of
+%% object attributes, the function must also include the domain of the
+%% function within its range, in such instances.
+objects(G, #o{id = X}) -> 
     objects(G, X);
-objects(G, X) ->
-    [O || {o, _} = Id <- digraph_utils:reaching_neighbours([X], G),
-	  O <- mnesia:dirty_read(o, Id)].
+objects(G, #oa{id = X}) -> 
+    objects(G, X);
+objects(G, X) -> 
+    [O || {o, _} = O <- digraph_utils:reaching([X], G)].
 
 -spec elements(G, PE) -> [E] when
       G :: digraph:graph(),
@@ -613,20 +621,7 @@ elements(G, PE) ->
 	#oa{id = X} -> X;
 	#o{id = X} -> X
     end,
-    F = fun({ua, _} = Id) ->
-		[UA] = mnesia:dirty_read(ua, Id),
-		UA;
-	   ({u, _} = Id) ->
-		[U] = mnesia:dirty_read(u, Id),
-		U;
-	   ({oa, _} = Id) ->
-		[OA] = mnesia:dirty_read(oa, Id),
-		OA;
-	   ({o, _} = Id) ->
-		[O] = mnesia:dirty_read(o, Id),
-		O
-	end,
-    lists:map(F, digraph_utils:reaching_neighbours([X], G)).
+    digraph_utils:reaching([X], G).
 
 -spec icap(G, UA) -> [{ARset, AT}] when
       G :: digraph:graph(),
@@ -686,11 +681,12 @@ iae(G, X) ->
 disj_range(G, ATIs, ATEs) ->
     Set1 = sets:new(),
     F1 = fun(AT, Acc) ->
-    		ATs = elements(G, AT),
-    		sets:union(Acc, sets:from_list(ATs))
-    	end,
+		 ATs = elements(G, AT),
+		 %% io:format("ATs ~p~n", [ATs]),
+		 sets:union(Acc, sets:from_list(ATs))
+	 end,
     T1 = lists:foldl(F1, Set1, ATIs),
-
+    %% io:format("T1 ~p~n", [sets:to_list(T1)]),
     PEPC = pepc(G),
     Set2 = sets:new(),
     F2 = fun(AT, Acc) ->

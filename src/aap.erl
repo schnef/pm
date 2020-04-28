@@ -298,6 +298,35 @@ tst8() ->
       u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
     [pm_mell:show_ua(G, U) || U <- [U1, U2]].
 
+g3() ->
+    {ok, PC} = pm_pap:c_pc(#pc{}),
+    {ok, UA1} =  pm_pap:c_ua_in_pc(#ua{value="ua1"}, PC),
+    {ok, UA2} =  pm_pap:c_ua_in_ua(#ua{value="ua2"}, UA1),
+    {ok, UA3} =  pm_pap:c_ua_in_ua(#ua{value="ua3"}, UA1),
+    {ok, U1} =  pm_pap:c_u_in_ua(#u{value="u1"}, UA2),
+    %% ok = pm_pap:c_u_to_ua(U1, UA3),
+    {ok, U2} =  pm_pap:c_u_in_ua(#u{value="u2"}, UA3),
+    {ok, OA1} =  pm_pap:c_oa_in_pc(#oa{value="oa21"}, PC),
+    {ok, OA2} =  pm_pap:c_oa_in_oa(#oa{value="oa20"}, OA1),
+    {ok, O1} =  pm_pap:c_o_in_oa(#o{value="o1"}, OA2),
+    {ok, O2} =  pm_pap:c_o_in_oa(#o{value="o2"}, OA2),
+    #{pc1 => PC,
+      ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
+      oa21 => OA1, oa20 => OA2, o1 => O1, o2 => O2
+     }.
+
+tst9() ->
+    pm_pap:clear(),
+    {ok, G} = pm_pap:get_digraph(),
+    M = g3(),
+    pm:gv(G),
+    #{ua1 := UA1, ua2 := UA2, ua3 := UA3,
+      u1 := U1, u2 := U2} = M,
+    ATIs = [U1],
+    ATEs = [],
+    pm_pip:disj_range(G, ATIs, ATEs).
+
+
 %% =============================================================================
 %% Digraph
 %% =============================================================================
