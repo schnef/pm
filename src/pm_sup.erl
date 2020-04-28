@@ -36,10 +36,6 @@ init([]) ->
 		       #{id => pep_sup,
 			 start => {pm_pep_sup, start_link, []},
 			 shutdown => infinity,
-			 type => supervisor},
-		       #{id => caches,
-			 start => {pm_pccache_sup, start_link, []},
-			 shutdown => infinity,
 			 type => supervisor}
 		      ]}}.
 

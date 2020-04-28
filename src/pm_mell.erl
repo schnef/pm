@@ -21,6 +21,7 @@
 	 find_orphan_objects_ANSI/2, find_orphan_objects_RESTRICTED/2,
 	 show_ua/2, check_prohibitions/5]).
 
+%% TODO: The cache currently does not work.
 -define(USE_CACHE, false).
 
 %% This function takes a digraph and outputs dot formatted output for displaying the graph.
