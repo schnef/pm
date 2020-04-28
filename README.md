@@ -14,28 +14,17 @@ use the functions.
 
 ## First time
 
-Before running the application, the database must be created. 
-The simplest way to do this is to start the application and wait for
-it to crash afetr about five seconds because it couldn't start the
-databse.
+Before running the application, the database must be created. Look for
+the executable `pm_init` which may be in the `bin` or
+`_build/default/bin` directory.
 
 ```
-~/pm$ rebar3 shell
-<lots of output>
-===> Failed to boot pm for reason {bad_return,
+~/pm$ ./_build/default/bin/pm_init 
+Delete old schema, if any
+Create new schema
    ...
    
 ```
-Press the `<Enter>` key to get the prompt `1>` and enter the following
-line:
-
-```
-1> pm_db:install([node()]).
-```
-
-This should give a lot of output ending with `{[ok],[]}`. Now quit
-from the erlang shell by entering `q().` and restart the application
-as before and you're ready to go.
 
 ## Running tests
 
@@ -46,9 +35,11 @@ tests by executing:
 ```
 $ rebar3 eunit
 <lots of progress reports>
-Finished in 1.582 seconds
-297 tests, 0 failures
+Finished in 2.252 seconds
+351 tests, 7 failures
+===> Error running tests
 ```
+Look at the unti tests at the end of the modules for usage examples.
 
 The [policy machine core](https://pm-master.github.io/pm-master/policy-machine-core/)
 gives a [bank teller example](https://pm-master.github.io/pm-master/policy-machine-core/#bank-teller), which is implemented as one of the unit tests:
@@ -73,11 +64,3 @@ tst_policy_machine_core_getting_started() ->
      ?_assertMatch(grant, pm_pdp:privilege(U2, [AR_r], O1)),
      ?_assertMatch(deny, pm_pdp:privilege(U2, [AR_w], O1))].
 ```
-
-Since this implementation currently lacks the option to have more than one
-Policy Class, the unit test is not equivalent to the example. The
-example does however make it clear what the authors intend the
-multiple PCs to be used like.
-
-NB: as the unit test code shows, the application implements only the
-low-level functions from the specifications.
