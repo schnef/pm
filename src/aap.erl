@@ -223,7 +223,7 @@ tst1() ->
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
     #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
-    pm_mell:gv(G),
+    pm:gv(G),
     [begin
 	 %% io:format("find_border ~p~n", [pm_mell:find_border_at_priv_RESTRICTED(G, U)]),
 	 io:format("calc_priv ~p~n", [sets:to_list(pm_mell:calc_priv_RESTRICTED(G, U ,O))])
@@ -235,7 +235,7 @@ tst2(Restricted) ->
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
     #{u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
-    pm_mell:gv(G),
+    pm:gv(G),
     [io:format("accessible_objects ~p~n", [pm_mell:show_accessible_ats(G, U, Restricted)])
      || U <- [U1, U2]].
 
@@ -244,7 +244,7 @@ tst3(Restricted) ->
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
     #{u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
-    pm_mell:gv(G),
+    pm:gv(G),
     [io:format("vis_initial_at ~p~n", [pm_mell:vis_initial_at(G, U, Restricted)])
      || U <- [U1, U2]].
 
@@ -252,7 +252,7 @@ tst4(Flag) ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
-    pm_mell:gv(G),
+    pm:gv(G),
     #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
     [pm_mell:find_border_at_priv(G, U, Flag) || U <- [U1, U2]].
 
@@ -260,7 +260,7 @@ tst5(Flag) ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g1(),
-    pm_mell:gv(G),
+    pm:gv(G),
     #{u1 := #u{id = U1}, u2 := #u{id = U2}, o1 := #o{id = O1}, o2 := #o{id = O2}} = M,
     [{OA, _} | _] = pm_mell:find_border_at_priv(G, U1, Flag),
     pm_mell:predecessor_at(G, U1, OA, Flag).
@@ -269,7 +269,7 @@ tst6(Flag) ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g2(),
-    pm_mell:gv(G),
+    pm:gv(G),
     #{pc1 := #pc{id = PC1}, pc2 := #pc{id = PC2},
       ua1 := #ua{id = UA1}, ua2 := #ua{id = UA2}, ua3 := #ua{id = UA3},
       u1 := #u{id = U1}, u2 := #u{id = U2},
@@ -281,7 +281,7 @@ tst7(Flag) ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g2(),
-    pm_mell:gv(G),
+    pm:gv(G),
     #{pc1 := #pc{id = PC1}, pc2 := #pc{id = PC2},
       ua1 := #ua{id = UA1}, ua2 := #ua{id = UA2}, ua3 := #ua{id = UA3},
       u1 := #u{id = U1}, u2 := #u{id = U2},
@@ -293,7 +293,7 @@ tst8() ->
     pm_pap:clear(),
     {ok, G} = pm_pap:get_digraph(),
     M = g(),
-    pm_mell:gv(G),
+    pm:gv(G),
     #{ua1 := #ua{id = UA1}, ua2 := #ua{id = UA2}, ua3 := #ua{id = UA3},
       u1 := #u{id = U1}, u2 := #u{id = U2}} = M,
     [pm_mell:show_ua(G, U) || U <- [U1, U2]].

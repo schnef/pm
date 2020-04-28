@@ -8,7 +8,7 @@
 
 %% API
 -export([start_link/0, new_session/2, end_session/1,
-	 switch_assignment_between_uas/4]).
+	 switch_assignment_between_uas/4, gv/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -108,6 +108,89 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%% This function takes a digraph and outputs dot formatted output for displaying the graph.
+gv(G) ->
+    PEs = digraph_utils:topsort(G),
+    F1 = fun({u, _} = Id, {Acc, Iu, Iua, Io, Ioa, Ipc}) ->
+		 U = "u" ++ integer_to_list(Iu),
+		 [#u{value = L}] = mnesia:dirty_read(u, Id),
+		 {[{Id, U, L} | Acc], Iu + 1, Iua, Io, Ioa, Ipc};
+	    ({ua, _} = Id, {Acc, Iu, Iua, Io, Ioa, Ipc}) ->
+		 UA = "ua" ++ integer_to_list(Iua),
+		 [#ua{value = L}] = mnesia:dirty_read(ua, Id),
+		 {[{Id, UA, L} | Acc], Iu, Iua + 1, Io, Ioa, Ipc};
+	    ({o, _} = Id, {Acc, Iu, Iua, Io, Ioa, Ipc}) ->
+		 O = "o" ++ integer_to_list(Io),
+		 [#o{value = L}] = mnesia:dirty_read(o, Id),
+		 {[{Id, O, L} | Acc], Iu, Iua, Io + 1, Ioa, Ipc};
+	    ({oa, _} = Id, {Acc, Iu, Iua, Io, Ioa, Ipc}) ->
+		 OA = "oa" ++ integer_to_list(Ioa),
+		 [#oa{value = L}] = mnesia:dirty_read(oa, Id),
+		 {[{Id, OA, L} | Acc], Iu, Iua, Io, Ioa + 1, Ipc};
+	    ({pc, _} = Id, {Acc, Iu, Iua, Io, Ioa, Ipc}) ->
+		 PC = "pc" ++ integer_to_list(Ipc),
+		 [#pc{value = L}] = mnesia:dirty_read(pc, Id),
+		 {[{Id, PC, L} | Acc], Iu, Iua, Io, Ioa, Ipc + 1}
+	 end,
+    {PEs1, _, _, _, _, _} = lists:foldl(F1, {[], 1, 1, 1, 1, 1}, PEs),
+    M = maps:from_list([{Id, Name} || {Id, Name, _Label} <- PEs1]),
+    F2 = fun({_Id, Name, undefined}) ->
+		 io_lib:format("  ~s [label=\"<~s>\" shape=plaintext]", [Name, Name]);
+	    ({_Id, Name, Label}) ->
+		 io_lib:format("  ~s [label=\"~s\" shape=plaintext]", [Name, Label])
+	 end,
+    Ns = lists:map(F2, PEs1),
+
+    PCs = [io_lib:format("  ~s -> ~s", [maps:get(Id2, M), Name])
+	   || {{pc, _} = Id1, Name, _Label} <- PEs1,
+	      Id2 <- digraph:in_neighbours(G, Id1)],
+
+    Us = [io_lib:format("  ~s -> ~s", [maps:get(Id2, M), Name])
+	  || {{ua, _} = Id1, Name, _Label} <- PEs1,
+	     {Tag, _} = Id2 <- digraph:in_neighbours(G, Id1),
+	     Tag =:= u orelse Tag =:= ua],
+
+    Os = [io_lib:format("  ~s -> ~s", [maps:get(Id2, M), Name])
+	  || {{oa, _} = Id1, Name, _Label} <- PEs1,
+	     {Tag, _} = Id2 <- digraph:in_neighbours(G, Id1),
+	     Tag =:= o orelse Tag =:= oa],
+
+    F3 = fun({{ua, _} = Id, _Name, _Label}, Acc) ->
+		 mnesia:dirty_read(association, Id) ++ Acc;
+	    (_, Acc) ->
+		 Acc
+    	 end,
+    Assocs = lists:foldl(F3, [], PEs1),
+    As = [io_lib:format("  ~s -> ~s [label=\"~p\", constraint=false, splines=curved, style=dashed]",
+			[maps:get(UA, M), maps:get(AT, M), sets:to_list(ARs)])
+	  || #association{ua = UA, at = AT, arset = ARset} <- Assocs,
+	     #set{value = ARs} <- mnesia:dirty_read(arset, ARset)],
+    {ok, S} = file:open("pm.gv", write),
+    io:format(S,
+	      "digraph pm {~n"
+	      "  subgraph cluster0 {~n"
+	      "  color=blue;~n"
+	      "  label=\"Objects\";~n"
+	      "~s;~n}~n~n"
+	      "  subgraph cluster1 {~n"
+	      "  color=green;~n"
+	      "  label=\"Users\";~n"
+	      "~s;~n}~n~n"
+	      "/* connect to PCs */~n"
+	      "  subgraph cluster2 {~n"
+	      "  label=\"Policy classes\";~n"
+	      "~s;~n}~n~n"
+	      "/* Associations */~n"
+	      "~s;~n~n"
+	      "/* Node attributes */~n"
+	      "~s;~n"
+	      "~n}~n", [lists:join(";\n", Os),
+			lists:join(";\n", Us),
+			lists:join(";\n", PCs),
+			lists:join(";\n", As),
+			lists:join(";\n", Ns)]),
+    file:close(S).
 
 %% cmds() ->
 %%     add_host_app,
