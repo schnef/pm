@@ -682,11 +682,9 @@ disj_range(G, ATIs, ATEs) ->
     Set1 = sets:new(),
     F1 = fun(AT, Acc) ->
 		 ATs = elements(G, AT),
-		 %% io:format("ATs ~p~n", [ATs]),
 		 sets:union(Acc, sets:from_list(ATs))
 	 end,
     T1 = lists:foldl(F1, Set1, ATIs),
-    %% io:format("T1 ~p~n", [sets:to_list(T1)]),
     PEPC = pepc(G),
     Set2 = sets:new(),
     F2 = fun(AT, Acc) ->
@@ -709,7 +707,6 @@ conj_range(G, [ATI | ATIs], ATEs) ->
 		 sets:intersection(Acc, sets:from_list(ATs))
 	 end,
     T1 = lists:foldl(F1, Set1, ATIs),
-
     PEPC = pepc(G),
     Set2 = PEPC,
     F2 = fun(AT, Acc) ->

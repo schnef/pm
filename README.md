@@ -35,11 +35,9 @@ tests by executing:
 ```
 $ rebar3 eunit
 <lots of progress reports>
-Finished in 2.252 seconds
-351 tests, 7 failures
-===> Error running tests
+Finished in 2.372 seconds
+358 tests, 0 failures
 ```
-Look at the unti tests at the end of the modules for usage examples.
 
 The [policy machine core](https://pm-master.github.io/pm-master/policy-machine-core/)
 gives a [bank teller example](https://pm-master.github.io/pm-master/policy-machine-core/#bank-teller), which is implemented as one of the unit tests:
