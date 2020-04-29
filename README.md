@@ -22,7 +22,6 @@ the executable `pm_init` which may be in the `bin` or
 ~/pm$ ./_build/default/bin/pm_init 
 Delete old schema, if any
 Create new schema
-   
 ```
 
 ## Running tests

@@ -24,18 +24,31 @@ powerset2(Lst, I, N, Max) -> % when I < Max ->
 %% powerset2(_, _, _, _) ->
 %%     done.
 
-
-run() ->
-    PE = sets:from_list([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]),
-    ATIs = sets:from_list([2]),
+run1() ->
+    PE = sets:from_list([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, pc]),
+    ATIs = sets:from_list([4,5]),
     ATEs = sets:from_list([]),
-    DisjRange = sets:union(ATIs, sets:subtract(PE, ATEs)),
+    io:format("ATIs ~p~n", [lists:sort(sets:to_list(ATIs))]),
+    io:format("ATEs ~p~n", [lists:sort(sets:to_list(ATEs))]),
+    PC = sets:from_list([pc]),
+    PE_PC = sets:subtract(PE, PC),
+    PE_PC_ATEs = sets:subtract(PE_PC, ATEs),
+    io:format("PE \ PC \ ATEs ~p~n", [lists:sort(sets:to_list(PE_PC_ATEs))]),
+    DisjRange = sets:union(ATIs, PE_PC_ATEs),
     io:format("DisjRange ~p~n", [lists:sort(sets:to_list(DisjRange))]),
-    ConjRange = sets:intersection(ATIs, sets:subtract(PE, ATEs)),
+    ConjRange = sets:intersection(ATIs, PE_PC_ATEs),
     io:format("ConjRange ~p~n", [lists:sort(sets:to_list(ConjRange))])
     .
-    
+
 run2() ->
+    ATEs = sets:from_list([1,2,3,5]),
+    Candidates = sets:from_list([0,1,2,3,4]),
+    %% If any nodes in candidates are not in the computed
+    %% intersection, delete them from candidates
+    [1,2,3] = lists:sort(sets:to_list(sets:intersection(Candidates, ATEs))).
+
+    
+run3() ->
     G = digraph:new([acyclic]),
     PC = digraph:add_vertex(G),
     UA11 = digraph:add_vertex(G),
@@ -67,53 +80,6 @@ run2() ->
     digraph:add_edge(G, OA12, PC),
     
     digraph_utils:topsort(G).
-
-
-pe() ->
-    Ext = [{pc, [ua11, ua12, oa11, oa12]},
-	   {ua11, [ua1]},
-	   {ua1, [u1]},
-	   {u1, []},
-	   {ua12, [ua2]},
-	   {ua2, [u2]},
-	   {u2, []},
-	   {oa11, [oa1]},
-	   {oa1, [o1]},
-	   {o1, []},
-	   {oa12, [oa2]},
-	   {oa2, [o2]},
-	   {o2, []}],
-    sofs:from_external(Ext, [{atom,[atom]}]).
-    
-atis() ->
-    Ext = [{oa1, [o1]},
-	   {o1, []}],
-    sofs:from_external(Ext, [{atom,[atom]}]).
-
-ates() ->
-    Ext = [{oa11, [oa1]},
-    	   {oa1, [o1]},
-    	   {o1, []}],
-    sofs:from_external(Ext, [{atom,[atom]}]).
-
-disj_range() ->
-    ATIs = sofs:union_of_family(atis()),
-    io:format("ATIs ~p~n", [ATIs]),
-    ATEs = sofs:union_of_family(ates()),
-    io:format("ATEs ~p~n", [ATEs]),
-    PE = sofs:union_of_family(pe()),
-    io:format("PE\PC~n~p~n", [PE]),
-    sofs:union(ATIs, sofs:difference(PE, ATEs)).
-
-conj_range() ->
-    ATIs = sofs:intersection_of_family(atis()),
-    io:format("ATIs ~p~n", [ATIs]),
-    ATEs = sofs:intersection_of_family(ates()),
-    io:format("ATEs ~p~n", [ATEs]),
-    PE = sofs:union_of_family(pe()),
-    io:format("PE\PC~n~p~n", [PE]),
-    io:format("Diff PE, ATEs~n~p~n", [sofs:difference(PE, ATEs)]),
-    sofs:intersection(ATIs, sofs:difference(PE, ATEs)).
 
 minimal() ->
     {ok, PC} = pm_pap:c_pc(#pc{value="pc"}).    

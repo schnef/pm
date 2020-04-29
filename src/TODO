@@ -22,3 +22,7 @@ and ATE sets are used in prohibitions and are for that reason less
 frequently used.
 
 Use parsec for parsing https://github.com/massung/parsec.
+
+NB: Maybe use
+https://networkx.github.io/documentation/stable/index.html for
+generating test data?
