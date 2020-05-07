@@ -1,4 +1,5 @@
 -module(prop_mell).
+
 -include_lib("proper/include/proper.hrl").
 -include("../src/pm.hrl").
 
@@ -36,10 +37,13 @@ initial_state() ->
 
 %% @doc List of possible commands to run against the system
 command(#state{pcs = []}) ->
-    {call, pm_pap, c_pc, [#pc{}]};
-command(#state{pcs = [PC | _PCs]}) ->
-    oneof([{call, pm_pap, c_pc, [#pc{}]},
-	   {call, pm_pap, d_pc, [PC]}]);
+    {call, ?MODULE, c_pc, [pc()]};
+command(#state{pcs = PCs}) ->
+    N = rand:uniform(length(PCs)),
+    PC = lists:nth(N, PCs),
+    %% io:format("~p PCs~n", [length(PCs)]),
+    oneof([{call, ?MODULE, c_pc, [pc()]},
+	   {call, ?MODULE, d_pc, [PC]}]);
 command(_State) ->
     oneof([
         {call, actual_system, some_call, [term(), term()]}
@@ -47,64 +51,59 @@ command(_State) ->
 
 %% @doc Determines whether a command should be valid under the
 %% current state.
+precondition(_State, {call, _Mod, c_pc, [_PC]}) ->
+    true;
+precondition(#state{pcs = []}, {call, _Mod, d_pc, [_PC]}) ->
+    false;
+precondition(_State, {call, _Mod, d_pc, [_PC]}) ->
+    true;
 precondition(_State, {call, _Mod, _Fun, _Args}) ->
     true.
 
 %% @doc Given the state `State' *prior* to the call
 %% `{call, Mod, Fun, Args}', determine whether the result
 %% `Res' (coming from the actual system) makes sense.
-postcondition(_State, {call, pm_pap, c_pc, _Args}, {ok, PC}) ->
-    PC#pc.id =/= undefined;
-postcondition(#state{user_dag = [], object_dag = []}, {call, pm_pap, d_pc, _Args}, ok) ->
-    true;
-postcondition(_State, {call, pm_pap, d_pc, _Args}, {error, _Reason}) ->
-    true;
+postcondition(_State, {call, _Mod, c_pc, [_PC]}, PC) -> 
+    [PC#pc.id] =:= pm_pap:elements(PC);
+postcondition(_State, {call, _Mod, d_pc, [PC]}, Res) ->
+    Res =:= ok andalso [] =:= pm_pap:elements(PC);
 postcondition(_State, {call, _Mod, _Fun, _Args}, _Res) ->
     true.
 
-%% @doc A ssuming the postcondition for a call was true, update the model
+%% @doc Assuming the postcondition for a call was true, update the model
 %% accordingly for the test to proceed.
-next_state(#state{pcs = PCs} = State, {ok, PC}, {call, pm_pap, c_pc, [_PC]}) ->
+next_state(#state{pcs = PCs} = State, PC, {call, _Mod, c_pc, [_PC]}) ->
     State#state{pcs = [PC | PCs]};
-next_state(#state{pcs = PCs} = State, ok, {call, pm_pap, c_pc, [PC]}) ->
+next_state(#state{pcs = PCs} = State, _Res, {call, _Mod, d_pc, [PC]}) ->
     State#state{pcs = lists:delete(PC, PCs)};
 next_state(State, _Res, {call, _Mod, _Fun, _Args}) ->
     NewState = State,
     NewState.
 
+c_pc(PC1) ->
+    {ok, PC2} = pm_pap:c_pc(PC1),
+    %% io:format("c_pc ~p~n", [PC2]),
+    PC2.
+
+d_pc(PC) ->
+    %% io:format("d_pc ~p~n", [PC]),
+    pm_pap:d_pc(PC).
+
 %%%===================================================================
 %%% Generators
 %%%===================================================================
 
-pm() ->
-    ?LET(NPCs, choose(1, 3), [pc() || _ <- lists:seq(1, NPCs)]).
-
 %% Generators for PC, U, UA, O and OA
 pc() ->
-    ?LET(Name, string(), begin
-			     {ok, PC} = pm_pap:c_pc(#pc{value = Name}),
-			     PC
-			 end).
+    ?LET(Name, string(), #pc{value = Name}).
 u() ->
-    ?LET(Name, string(), begin
-			     {ok, U} = pm_pap:c_u(#u{value = Name}),
-			     U
-			 end).
+    ?LET(Name, string(), #u{value = Name}).
 ua() ->
-    ?LET(Name, string(), begin
-			     {ok, UA} = pm_pap:c_ua(#ua{value = Name}),
-			     UA
-			 end).
+    ?LET(Name, string(), #ua{value = Name}).
 o() ->
-    ?LET(Name, string(), begin
-			     {ok, O} = pm_pap:c_o(#o{value = Name}),
-			     O
-			 end).
+    ?LET(Name, string(), #o{value = Name}).
 oa() ->
-    ?LET(Name, string(), begin
-			     {ok, OA} = pm_pap:c_oa(#oa{value = Name}),
-			     OA
-			 end).
+    ?LET(Name, string(), #oa{value = Name}).
 
 %%%===================================================================
 %%% Internal functions

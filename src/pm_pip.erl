@@ -603,7 +603,12 @@ objects(G, #o{id = X}) ->
 objects(G, #oa{id = X}) -> 
     objects(G, X);
 objects(G, X) -> 
-    [O || {o, _} = O <- digraph_utils:reaching([X], G)].
+    case digraph:vertex(G, X) of
+	{_X, _Label} ->
+	    [O || {o, _} = O <- digraph_utils:reaching([X], G)];
+	false ->
+	    []
+    end.
 
 -spec elements(G, PE) -> [E] when
       G :: digraph:graph(),
@@ -621,7 +626,12 @@ elements(G, PE) ->
 	#oa{id = X} -> X;
 	#o{id = X} -> X
     end,
-    digraph_utils:reaching([X], G).
+    case digraph:vertex(G, X) of
+	{_X, _Label} ->
+	    digraph_utils:reaching([X], G);
+	false ->
+	    []
+    end.
 
 -spec icap(G, UA) -> [{ARset, AT}] when
       G :: digraph:graph(),

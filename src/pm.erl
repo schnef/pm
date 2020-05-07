@@ -14,7 +14,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
--export_types([id_tag/0, id/0, u/0, ua/0, o/0, oa/0, pc/0, pe/0,
+-export_type([id_tag/0, id/0, u/0, ua/0, o/0, oa/0, pc/0, pe/0,
 	       assign/0, association/0, prohibition/0, obligation/0, op/0, ar/0]).
 
 -type id_tag() :: u | ua | o | oa | pc | arset | atset | pattern | response.

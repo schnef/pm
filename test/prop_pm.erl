@@ -37,9 +37,76 @@ prop_pm_t() ->
 		   end)
 	  ).
 
+%% The following tests are not real tests because they just repeat
+%% the same test which won't fail. Consider this however as some
+%% preludes to get to now PropEr.
+prop_pc() ->
+    ?SETUP(fun setup/0,
+	   ?FORALL(PC, pc(),
+		   begin
+		       {ok, PC1} = pm_pap:c_pc(PC),
+		       io:format("pc ~p~n~p~n", [PC, PC1]),
+		       false
+		   end)
+	  ).
+
+prop_c_pc() ->
+    ?SETUP(fun setup/0,
+	   ?FORALL(C_PC, c_pc(),
+		   begin
+		       {ok, PC} = eval(C_PC),
+		       io:format("c_pc ~p~n~p~n", [C_PC, PC]),
+		       false
+		   end)
+	  ).
+
+prop_sc_pc() ->
+    ?SETUP(fun setup/0,
+	   ?FORALL(SC_PC, sc_pc(),
+		   begin
+		       {ok, PC} = SC_PC,
+		       io:format("sc_pc ~p~n~p~n", [SC_PC, PC]),
+		       false
+		   end)
+	  ).
+
+prop_ua() ->
+    ?SETUP(fun setup/0,
+	   ?FORALL({{ok, PC}, UAs}, {c_pc(), list(ua())},
+		   begin
+		       [{ok, #ua{}} = pm_pap:c_ua_in_pc(UA, PC) || UA <- UAs],
+		       length(UAs) + 1 =:= length(pm_pap:elements(PC))
+		   end)
+	  ).
+
+prop_u() ->
+    ?SETUP(fun setup/0,
+	   ?FORALL({PC, UAs, Us}, {pc(), non_empty(list(ua())), list(u())},
+		   begin
+		       {ok, PC1} = pm_pap:c_pc(PC),
+		       [UA1 | UAsx] = [begin
+					   {ok, #ua{} = UA1} = pm_pap:c_ua_in_pc(UA, PC1),
+					   UA1
+				       end || UA <- UAs],
+		       Us1 = [begin
+				  {ok, #u{} = U1} = pm_pap:c_u_in_ua(U, UA1),
+				  U1
+			      end || U <- Us],
+		       Assigns = [ok = pm_pap:c_u_to_ua(U1, UAx) || UAx <- UAsx, U1 <- Us1],
+		       collect({'u->ua', to_range(100, length(Assigns) + length(Us))},
+			       length(Us) + length(UAs) + 1 =:= length(pm_pap:elements(PC1))
+			       andalso
+			       length(Us) =:= length(pm_pap:users(UA1)))
+		   end)
+	  ).
+
 %%%%%%%%%%%%%%%
 %%% Helpers %%%
 %%%%%%%%%%%%%%%
+
+to_range(M, N) ->
+    Base = N div M,
+    {Base * M, (Base + 1) * M}.
 
 is_pm({pc, User_DAG, Object_DAG}) when is_list(User_DAG), is_list(Object_DAG) ->
     true;
@@ -51,6 +118,29 @@ boolean(_) -> true.
 %%%%%%%%%%%%%%%%%%
 %%% Generators %%%
 %%%%%%%%%%%%%%%%%%
+
+%% Generate an instance of the pc, u, ua, o o and oa record.
+pc() ->
+    ?LET(Value, term(), #pc{value = Value}).
+
+u() ->
+    ?LET(Value, term(), #u{value = Value}).
+
+ua() ->
+    ?LET(Value, term(), #ua{value = Value}).
+
+o() ->
+    ?LET(Value, term(), #o{value = Value}).
+
+oa() ->
+    ?LET(Value, term(), #oa{value = Value}).
+
+%% Make a call to the system to generate a PC
+c_pc() ->
+    ?LET(PC, pc(), {'call', pm_pap, c_pc, [PC]}).
+
+sc_pc() ->
+    ?LET(PC, pc(), {'$call', pm_pap, c_pc, [PC]}).
 
 %% @doc Setup the application, including the database, for running the
 %% tests. This function returns a tear down function.
