@@ -123,173 +123,173 @@ code_change(_OldVsn, State, _Extra) ->
 %% the results of the ReqCap mapping for administrative operations,
 %% since each administrative operation corresponds to one of the
 %% similarly named routines.
-req_cap(c_pc, [PC]) ->
-    %% process must hold (univ, framework)
-    [{univ, framework}];
-req_cap(c_u_in_ua, [U, UA]) ->
-    %% process must have (c-u, ua), (c-uua, ua)
-    [{'c-u', UA}, {'c-uua', UA}];
-req_cap(c_ua_in_ua, [UA1, UA2]) ->
-    %% process must have (c-ua, ua), (c-uaua, ua)
-    [{'c-ua', UA2}, {'c-uaua', UA2}];
-req_cap(c_ua_in_pc, [UA, PC]) ->   
-    %% process must hold (univ, framework)
-    [{univ, framework}];
-req_cap(c_u_to_ua, [U, UA]) ->
-    %% process must hold either (c-uua-fr, u), (c-uua-to, ua)
-    %% capabilities to reach this point, or if ∃x ∈ PC: (u ASSIGN + x
-    %% ⋀ ua ASSIGN + x), (c-uua, ua)
-    [];
-req_cap(c_ua_to_ua, [UA1, UA2]) ->
-    %% process must hold either (c-uaua-fr, uafr), (c-uaua-to, uato)
-    %% capabilities to reach this point, or if ∃x ∈ PC: (uafr ASSIGN +
-    %% x ⋀ uato ASSIGN + x), (c-uaua, uato)
-    [];
-req_cap(c_ua_to_pc, [UA, PC]) ->
-    %% process must hold (univ, framework)
-    [];
-req_cap(c_o_in_oa, [O, OA]) ->
-    %% process must have (c-o, oa), (c-ooa, oa)
-    [];
-req_cap(c_oa_in_oa, [OA1, OA2]) ->
-    %% process must have (c-oa, oa), (c-oaoa, oa)
-    [];
-req_cap(c_oa_in_pc, [OA, PC]) ->   
-    %% process must hold (univ, framework)
-    [];
-req_cap(c_o_to_oa, [O, OA]) ->
-    %% process must hold either (c-ooa-fr, o), (c-ooa-to, oa)
-    %% capabilities to reach this point, or if ∃x ∈ PC: (o ASSIGN + x
-    %% ⋀ oa ASSIGN + x), (c-ooa, oa)
-    [];
-req_cap(c_oa_to_oa, [OA1, OA2]) ->
-    %% process must hold either (c-oaoa-fr, oafr), (c-oaoa-to, oato)
-    %% capabilities to reach this point, or if ∃x ∈ PC: (oafr ASSIGN +
-    %% x ⋀ oato ASSIGN + x), (c-oaoa, oato)
-    [];
-req_cap(c_oa_to_pc, [OA, PC]) ->
-    %% process must hold (univ, framework)
-    [];
-req_cap(c_assoc, [UA, AT]) ->
-    %% process must hold (c-assoc-fr, ua), (c-assoc-to, at)
-    [];
-req_cap(c_conj_uprohib, [U, ATIs, ATEs]) ->
-    %% process must hold the capabilities (c-prohib-fr, u),
-    %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
-    %% ∀ate ∈ ates
-    [];
-req_cap(c_conj_pprohib, [P, ATIs, ATEs]) ->
-    %% process must hold the capabilities (c-prohib-fr,
-    %% Process-User(p)), (c-prohib-to, ati) for ∀ati ∈ atis, and
-    %% (c-prohib-to, ate) for ∀ate ∈ ates
-    [];
-req_cap(c_conj_uaprohib, [UA, ATIs, ATEs]) ->
-    %% process must hold the capabilities (c-prohib-fr, ua),
-    %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
-    %% ∀ate ∈ ates
-    [];
-req_cap(c_disj_uprohib, [U, ATIs, ATEs]) ->
-    %% process must hold the capabilities (c-prohib-fr, u),
-    %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
-    %% ∀ate ∈ ates
-    [];
-req_cap(c_disj_pprohib, [P, ATIs, ATEs]) ->
-    %% process must hold the capabilities (c-prohib-fr,
-    %% Process-User(p)), (c-prohib-to, ati) for ∀ati ∈ atis, and
-    %% (c-prohib-to, ate) for ∀ate ∈ ates
-    [];
-req_cap(c_disj_uaprohib, [UA, ATIs, ATEs]) ->
-    %% process must hold the capabilities (c-prohib-fr, ua),
-    %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
-    %% ∀ate ∈ ates
-    [];
-req_cap(eval_pattern, Argseq) ->
-    [];
-req_cap(eval_response, Argseq) ->
-    [];
-req_cap(c_oblig, Argseq) ->
-    [];
-req_cap(d_u_in_ua, [U, UA]) ->
-    %% process must have (d-u, ua) capabilities and either (d-uua, ua)
-    %% or (d-uua-fr, u), (d-uua-to, ua)
-    [];
-req_cap(d_u_to_ua, [U, UA]) ->
-    %% process must have either (d-uua, ua) or (d-uua-fr, u),
-    %% (d-uua-to, ua)
-    [];
-req_cap(d_ua_in_ua, [UA1, UA2]) ->
-    %% process must have (d-ua, uato) capabilities and either (d-uaua,
-    %% uato) or (d-uaua-fr, uafr), (d-uaua-to, uato)
-    [];
-req_cap(d_ua_to_ua, [UA1, UA2]) ->
-    %% process must have either (d-uaua, uato) or (d-uaua-fr, uafr),
-    %% (d-uaua-to, uato)
-    [];
-req_cap(d_ua_in_pc, [UA, PC]) ->
-    %% process must have (univ, framework)
-    [];
-req_cap(d_ua_to_pc, [UA, PC]) ->
-    %% process must have (univ, framework)
-    [];
-req_cap(d_o_in_oa, [O, OA]) ->
-    %% process must have (d-u, ua) capabilities and either (d-uua, ua)
-    %% or (d-uua-fr, u), (d-uua-to, ua)
-    [];
-req_cap(d_o_to_oa, [O, OA]) ->
-    %% process must have either (d-uua, ua) or (d-uua-fr, u),
-    %% (d-uua-to, ua)
-    [];
-req_cap(d_oa_in_oa, [OA1, OA2]) ->
-    %% process must have (d-ua, uato) capabilities and either (d-uaua,
-    %% uato) or (d-uaua-fr, uafr), (d-uaua-to, uato)
-    [];
-req_cap(d_oa_to_oa, [OA1, OA2]) ->
-    %% process must have either (d-uaua, uato) or (d-uaua-fr, uafr),
-    %% (d-uaua-to, uato)
-    [];
-req_cap(d_oa_in_pc, [OA, PC]) ->
-    %% process must have (univ, framework)
-    [];
-req_cap(d_oa_to_pc, [OA, PC]) ->
-    %% process must have (univ, framework)
-    [];
-req_cap(d_pc, [PC]) ->
-    %% process must have (univ, framework)
-    [];
-req_cap(d_assoc, [UA, AT]) ->
-    %% process must hold (d-assoc-fr, ua), (d-assoc-to, at)
-    [];
-req_cap(d_conj_uprohib, [U, ATIs, ATEs]) ->
-    %% process must hold (d-prohib-fr, u), (d-prohib-to, at)
-    %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
-    %% ates
-    [];
-req_cap(d_conj_pprohib, [P, ATIs, ATEs]) ->
-    %% process must hold (d-prohib-fr, Process_User(p)), (d-prohib-to,
-    %% at) capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for
-    %% ∀ate ∈ ates
-    [];
-req_cap(d_conj_uaprohib, [UA, ATIs, ATEs]) ->
-    %% process must hold (d-prohib-fr, ua), (d-prohib-to, at)
-    %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
-    %% ates
-    [];
-req_cap(d_disj_uprohib, [U, ATIs, ATEs]) ->
-    %% process must hold (d-prohib-fr, u), (d-prohib-to, at)
-    %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
-    %% ates
-    [];
-req_cap(d_disj_pprohib, [P, ATIs, ATEs]) ->
-    %% process must hold (d-prohib-fr, Process_User(p)), (d-prohib-to,
-    %% at) capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for
-    %% ∀ate ∈ ates
-    [];
-req_cap(d_disj_uaprohib, [UA, ATIs, ATEs]) ->
-    %% process must hold (d-prohib-fr, ua), (d-prohib-to, at)
-    %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
-    %% ates
-    [];
-req_cap(d_oblig, Argseq) ->
+%% req_cap(c_pc, [PC]) ->
+%%     %% process must hold (univ, framework)
+%%     [{univ, framework}];
+%% req_cap(c_u_in_ua, [U, UA]) ->
+%%     %% process must have (c-u, ua), (c-uua, ua)
+%%     [{'c-u', UA}, {'c-uua', UA}];
+%% req_cap(c_ua_in_ua, [UA1, UA2]) ->
+%%     %% process must have (c-ua, ua), (c-uaua, ua)
+%%     [{'c-ua', UA2}, {'c-uaua', UA2}];
+%% req_cap(c_ua_in_pc, [UA, PC]) ->   
+%%     %% process must hold (univ, framework)
+%%     [{univ, framework}];
+%% req_cap(c_u_to_ua, [U, UA]) ->
+%%     %% process must hold either (c-uua-fr, u), (c-uua-to, ua)
+%%     %% capabilities to reach this point, or if ∃x ∈ PC: (u ASSIGN + x
+%%     %% ⋀ ua ASSIGN + x), (c-uua, ua)
+%%     [];
+%% req_cap(c_ua_to_ua, [UA1, UA2]) ->
+%%     %% process must hold either (c-uaua-fr, uafr), (c-uaua-to, uato)
+%%     %% capabilities to reach this point, or if ∃x ∈ PC: (uafr ASSIGN +
+%%     %% x ⋀ uato ASSIGN + x), (c-uaua, uato)
+%%     [];
+%% req_cap(c_ua_to_pc, [UA, PC]) ->
+%%     %% process must hold (univ, framework)
+%%     [];
+%% req_cap(c_o_in_oa, [O, OA]) ->
+%%     %% process must have (c-o, oa), (c-ooa, oa)
+%%     [];
+%% req_cap(c_oa_in_oa, [OA1, OA2]) ->
+%%     %% process must have (c-oa, oa), (c-oaoa, oa)
+%%     [];
+%% req_cap(c_oa_in_pc, [OA, PC]) ->   
+%%     %% process must hold (univ, framework)
+%%     [];
+%% req_cap(c_o_to_oa, [O, OA]) ->
+%%     %% process must hold either (c-ooa-fr, o), (c-ooa-to, oa)
+%%     %% capabilities to reach this point, or if ∃x ∈ PC: (o ASSIGN + x
+%%     %% ⋀ oa ASSIGN + x), (c-ooa, oa)
+%%     [];
+%% req_cap(c_oa_to_oa, [OA1, OA2]) ->
+%%     %% process must hold either (c-oaoa-fr, oafr), (c-oaoa-to, oato)
+%%     %% capabilities to reach this point, or if ∃x ∈ PC: (oafr ASSIGN +
+%%     %% x ⋀ oato ASSIGN + x), (c-oaoa, oato)
+%%     [];
+%% req_cap(c_oa_to_pc, [OA, PC]) ->
+%%     %% process must hold (univ, framework)
+%%     [];
+%% req_cap(c_assoc, [UA, AT]) ->
+%%     %% process must hold (c-assoc-fr, ua), (c-assoc-to, at)
+%%     [];
+%% req_cap(c_conj_uprohib, [U, ATIs, ATEs]) ->
+%%     %% process must hold the capabilities (c-prohib-fr, u),
+%%     %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
+%%     %% ∀ate ∈ ates
+%%     [];
+%% req_cap(c_conj_pprohib, [P, ATIs, ATEs]) ->
+%%     %% process must hold the capabilities (c-prohib-fr,
+%%     %% Process-User(p)), (c-prohib-to, ati) for ∀ati ∈ atis, and
+%%     %% (c-prohib-to, ate) for ∀ate ∈ ates
+%%     [];
+%% req_cap(c_conj_uaprohib, [UA, ATIs, ATEs]) ->
+%%     %% process must hold the capabilities (c-prohib-fr, ua),
+%%     %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
+%%     %% ∀ate ∈ ates
+%%     [];
+%% req_cap(c_disj_uprohib, [U, ATIs, ATEs]) ->
+%%     %% process must hold the capabilities (c-prohib-fr, u),
+%%     %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
+%%     %% ∀ate ∈ ates
+%%     [];
+%% req_cap(c_disj_pprohib, [P, ATIs, ATEs]) ->
+%%     %% process must hold the capabilities (c-prohib-fr,
+%%     %% Process-User(p)), (c-prohib-to, ati) for ∀ati ∈ atis, and
+%%     %% (c-prohib-to, ate) for ∀ate ∈ ates
+%%     [];
+%% req_cap(c_disj_uaprohib, [UA, ATIs, ATEs]) ->
+%%     %% process must hold the capabilities (c-prohib-fr, ua),
+%%     %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
+%%     %% ∀ate ∈ ates
+%%     [];
+%% req_cap(eval_pattern, Argseq) ->
+%%     [];
+%% req_cap(eval_response, Argseq) ->
+%%     [];
+%% req_cap(c_oblig, Argseq) ->
+%%     [];
+%% req_cap(d_u_in_ua, [U, UA]) ->
+%%     %% process must have (d-u, ua) capabilities and either (d-uua, ua)
+%%     %% or (d-uua-fr, u), (d-uua-to, ua)
+%%     [];
+%% req_cap(d_u_to_ua, [U, UA]) ->
+%%     %% process must have either (d-uua, ua) or (d-uua-fr, u),
+%%     %% (d-uua-to, ua)
+%%     [];
+%% req_cap(d_ua_in_ua, [UA1, UA2]) ->
+%%     %% process must have (d-ua, uato) capabilities and either (d-uaua,
+%%     %% uato) or (d-uaua-fr, uafr), (d-uaua-to, uato)
+%%     [];
+%% req_cap(d_ua_to_ua, [UA1, UA2]) ->
+%%     %% process must have either (d-uaua, uato) or (d-uaua-fr, uafr),
+%%     %% (d-uaua-to, uato)
+%%     [];
+%% req_cap(d_ua_in_pc, [UA, PC]) ->
+%%     %% process must have (univ, framework)
+%%     [];
+%% req_cap(d_ua_to_pc, [UA, PC]) ->
+%%     %% process must have (univ, framework)
+%%     [];
+%% req_cap(d_o_in_oa, [O, OA]) ->
+%%     %% process must have (d-u, ua) capabilities and either (d-uua, ua)
+%%     %% or (d-uua-fr, u), (d-uua-to, ua)
+%%     [];
+%% req_cap(d_o_to_oa, [O, OA]) ->
+%%     %% process must have either (d-uua, ua) or (d-uua-fr, u),
+%%     %% (d-uua-to, ua)
+%%     [];
+%% req_cap(d_oa_in_oa, [OA1, OA2]) ->
+%%     %% process must have (d-ua, uato) capabilities and either (d-uaua,
+%%     %% uato) or (d-uaua-fr, uafr), (d-uaua-to, uato)
+%%     [];
+%% req_cap(d_oa_to_oa, [OA1, OA2]) ->
+%%     %% process must have either (d-uaua, uato) or (d-uaua-fr, uafr),
+%%     %% (d-uaua-to, uato)
+%%     [];
+%% req_cap(d_oa_in_pc, [OA, PC]) ->
+%%     %% process must have (univ, framework)
+%%     [];
+%% req_cap(d_oa_to_pc, [OA, PC]) ->
+%%     %% process must have (univ, framework)
+%%     [];
+%% req_cap(d_pc, [PC]) ->
+%%     %% process must have (univ, framework)
+%%     [];
+%% req_cap(d_assoc, [UA, AT]) ->
+%%     %% process must hold (d-assoc-fr, ua), (d-assoc-to, at)
+%%     [];
+%% req_cap(d_conj_uprohib, [U, ATIs, ATEs]) ->
+%%     %% process must hold (d-prohib-fr, u), (d-prohib-to, at)
+%%     %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
+%%     %% ates
+%%     [];
+%% req_cap(d_conj_pprohib, [P, ATIs, ATEs]) ->
+%%     %% process must hold (d-prohib-fr, Process_User(p)), (d-prohib-to,
+%%     %% at) capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for
+%%     %% ∀ate ∈ ates
+%%     [];
+%% req_cap(d_conj_uaprohib, [UA, ATIs, ATEs]) ->
+%%     %% process must hold (d-prohib-fr, ua), (d-prohib-to, at)
+%%     %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
+%%     %% ates
+%%     [];
+%% req_cap(d_disj_uprohib, [U, ATIs, ATEs]) ->
+%%     %% process must hold (d-prohib-fr, u), (d-prohib-to, at)
+%%     %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
+%%     %% ates
+%%     [];
+%% req_cap(d_disj_pprohib, [P, ATIs, ATEs]) ->
+%%     %% process must hold (d-prohib-fr, Process_User(p)), (d-prohib-to,
+%%     %% at) capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for
+%%     %% ∀ate ∈ ates
+%%     [];
+%% req_cap(d_disj_uaprohib, [UA, ATIs, ATEs]) ->
+%%     %% process must hold (d-prohib-fr, ua), (d-prohib-to, at)
+%%     %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
+%%     %% ates
+%%     [];
+req_cap(d_oblig, _Argseq) ->
     [].
 
 
