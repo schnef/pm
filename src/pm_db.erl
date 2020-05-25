@@ -137,8 +137,10 @@ init_u_data() ->
     [#u{id = 'PA', value = {"PA", "Principal Administrator"}}].
 
 init_ar_data() ->
-    %% Generic Non-administrative Access Rights: See table 1 pg. 57
-    [#ar{id = 'r', value = {"r", "Read access right"}},
+    [% #ar{id = 'univ', value = {"univ", "The univ(ersal) access right held by the PA"}},
+
+     %% Generic Non-administrative Access Rights: See table 1 pg. 57
+     #ar{id = 'r', value = {"r", "Read access right"}},
      #ar{id = 'w', value = {"w", "Write access right"}},
 
      %% Generic Administrative Access Rights: See table 2 pg. 57

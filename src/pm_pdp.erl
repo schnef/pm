@@ -17,7 +17,7 @@
 -include("pm.hrl").
 
 %% API
--export([start_link/0, stop/0, privilege/3]).
+-export([start_link/0, stop/0, areq/3, privilege/3]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -25,12 +25,34 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {g}).
+-record(state, {g, pu}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
+-spec areq(P, Op, Argseq) -> grant | deny | {error, Reason} when
+      P :: pm:p(),
+      Op :: pm:op(),
+      Argseq :: [],
+      Reason :: term().
+%% @doc The access request decision function grants a process, p,
+%% permission to execute an access request (p, op, argseq), provided
+%% the following conditions hold for each access right and policy
+%% element pair (ar, pe) in one of the capability sets returned by the
+%% required capabilities function, ReqCap(op, argseq):
+%%
+%% * There exists a privilege (Process_User(p), ar, pe).
+%% * There does not exist a process restriction (p, ar, pe) ∈ P_RESTRICT.
+%% * There does not exist a user restriction (Process_User(p), ar, pe) ∈ U_RESTRICT.
+%% * There does not exist a user attribute restriction (ua, ar, pe) ∈ UA_RESTRICT, such that
+%%   Process_User(p) is contained by user attribute ua.
+%%
+%% Otherwise, the requested access is denied.   
+areq(P, Op, Argseq) ->
+    gen_server:call(?SERVER, {areq, P, Op, Argseq}).
+
+%% TODO: remove old stuff
 privilege(_U, [], _AT) ->
     {error, badarg};
 privilege(U, ARl, AT) ->
@@ -51,7 +73,15 @@ init([]) ->
     {ok, G} = pm_pap:get_digraph(),
     {ok, #state{g = G}}.
 
+
+
+
 %% @private
+handle_call({areq, P, Op, Argseq}, _From, #state{g = G, pu = PU} = State) ->
+    #process_user{u = U} = pm_pip:process_user(P, PU),
+    Cap_set = req_cap(Op, Argseq),
+    Reply = Cap_set,
+    {reply, Reply, State};
 handle_call({privilege, U, ARl, AT}, _From, #state{g = G} = State) ->
     Reply = privilege(G, U, ARl, AT),
     {reply, Reply, State};
@@ -78,6 +108,192 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+%% @private 
+
+-spec req_cap(Op, Argseq) -> Cap_set when Op :: pm:op(), Argseq :: [],
+      Cap_set :: [{Ar, PE}], Ar :: pm:ar(), PE :: pm:pe().
+%% @doc the required capabilities function returns the set of access
+%% right and policy element pairs {ar, pe}, required for the operation
+%% `Op' on `Argseq'. 
+%%
+%% Each administrative routine described in Appendix D contains, where
+%% appropriate, a comment indicating the capabilities needed to
+%% perform the routine. The entire collection can be used to specify
+%% the results of the ReqCap mapping for administrative operations,
+%% since each administrative operation corresponds to one of the
+%% similarly named routines.
+req_cap(c_pc, [PC]) ->
+    %% process must hold (univ, framework)
+    [{univ, framework}];
+req_cap(c_u_in_ua, [U, UA]) ->
+    %% process must have (c-u, ua), (c-uua, ua)
+    [{'c-u', UA}, {'c-uua', UA}];
+req_cap(c_ua_in_ua, [UA1, UA2]) ->
+    %% process must have (c-ua, ua), (c-uaua, ua)
+    [{'c-ua', UA2}, {'c-uaua', UA2}];
+req_cap(c_ua_in_pc, [UA, PC]) ->   
+    %% process must hold (univ, framework)
+    [{univ, framework}];
+req_cap(c_u_to_ua, [U, UA]) ->
+    %% process must hold either (c-uua-fr, u), (c-uua-to, ua)
+    %% capabilities to reach this point, or if ∃x ∈ PC: (u ASSIGN + x
+    %% ⋀ ua ASSIGN + x), (c-uua, ua)
+    [];
+req_cap(c_ua_to_ua, [UA1, UA2]) ->
+    %% process must hold either (c-uaua-fr, uafr), (c-uaua-to, uato)
+    %% capabilities to reach this point, or if ∃x ∈ PC: (uafr ASSIGN +
+    %% x ⋀ uato ASSIGN + x), (c-uaua, uato)
+    [];
+req_cap(c_ua_to_pc, [UA, PC]) ->
+    %% process must hold (univ, framework)
+    [];
+req_cap(c_o_in_oa, [O, OA]) ->
+    %% process must have (c-o, oa), (c-ooa, oa)
+    [];
+req_cap(c_oa_in_oa, [OA1, OA2]) ->
+    %% process must have (c-oa, oa), (c-oaoa, oa)
+    [];
+req_cap(c_oa_in_pc, [OA, PC]) ->   
+    %% process must hold (univ, framework)
+    [];
+req_cap(c_o_to_oa, [O, OA]) ->
+    %% process must hold either (c-ooa-fr, o), (c-ooa-to, oa)
+    %% capabilities to reach this point, or if ∃x ∈ PC: (o ASSIGN + x
+    %% ⋀ oa ASSIGN + x), (c-ooa, oa)
+    [];
+req_cap(c_oa_to_oa, [OA1, OA2]) ->
+    %% process must hold either (c-oaoa-fr, oafr), (c-oaoa-to, oato)
+    %% capabilities to reach this point, or if ∃x ∈ PC: (oafr ASSIGN +
+    %% x ⋀ oato ASSIGN + x), (c-oaoa, oato)
+    [];
+req_cap(c_oa_to_pc, [OA, PC]) ->
+    %% process must hold (univ, framework)
+    [];
+req_cap(c_assoc, [UA, AT]) ->
+    %% process must hold (c-assoc-fr, ua), (c-assoc-to, at)
+    [];
+req_cap(c_conj_uprohib, [U, ATIs, ATEs]) ->
+    %% process must hold the capabilities (c-prohib-fr, u),
+    %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
+    %% ∀ate ∈ ates
+    [];
+req_cap(c_conj_pprohib, [P, ATIs, ATEs]) ->
+    %% process must hold the capabilities (c-prohib-fr,
+    %% Process-User(p)), (c-prohib-to, ati) for ∀ati ∈ atis, and
+    %% (c-prohib-to, ate) for ∀ate ∈ ates
+    [];
+req_cap(c_conj_uaprohib, [UA, ATIs, ATEs]) ->
+    %% process must hold the capabilities (c-prohib-fr, ua),
+    %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
+    %% ∀ate ∈ ates
+    [];
+req_cap(c_disj_uprohib, [U, ATIs, ATEs]) ->
+    %% process must hold the capabilities (c-prohib-fr, u),
+    %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
+    %% ∀ate ∈ ates
+    [];
+req_cap(c_disj_pprohib, [P, ATIs, ATEs]) ->
+    %% process must hold the capabilities (c-prohib-fr,
+    %% Process-User(p)), (c-prohib-to, ati) for ∀ati ∈ atis, and
+    %% (c-prohib-to, ate) for ∀ate ∈ ates
+    [];
+req_cap(c_disj_uaprohib, [UA, ATIs, ATEs]) ->
+    %% process must hold the capabilities (c-prohib-fr, ua),
+    %% (c-prohib-to, ati) for ∀ati ∈ atis, and (c-prohib-to, ate) for
+    %% ∀ate ∈ ates
+    [];
+req_cap(eval_pattern, Argseq) ->
+    [];
+req_cap(eval_response, Argseq) ->
+    [];
+req_cap(c_oblig, Argseq) ->
+    [];
+req_cap(d_u_in_ua, [U, UA]) ->
+    %% process must have (d-u, ua) capabilities and either (d-uua, ua)
+    %% or (d-uua-fr, u), (d-uua-to, ua)
+    [];
+req_cap(d_u_to_ua, [U, UA]) ->
+    %% process must have either (d-uua, ua) or (d-uua-fr, u),
+    %% (d-uua-to, ua)
+    [];
+req_cap(d_ua_in_ua, [UA1, UA2]) ->
+    %% process must have (d-ua, uato) capabilities and either (d-uaua,
+    %% uato) or (d-uaua-fr, uafr), (d-uaua-to, uato)
+    [];
+req_cap(d_ua_to_ua, [UA1, UA2]) ->
+    %% process must have either (d-uaua, uato) or (d-uaua-fr, uafr),
+    %% (d-uaua-to, uato)
+    [];
+req_cap(d_ua_in_pc, [UA, PC]) ->
+    %% process must have (univ, framework)
+    [];
+req_cap(d_ua_to_pc, [UA, PC]) ->
+    %% process must have (univ, framework)
+    [];
+req_cap(d_o_in_oa, [O, OA]) ->
+    %% process must have (d-u, ua) capabilities and either (d-uua, ua)
+    %% or (d-uua-fr, u), (d-uua-to, ua)
+    [];
+req_cap(d_o_to_oa, [O, OA]) ->
+    %% process must have either (d-uua, ua) or (d-uua-fr, u),
+    %% (d-uua-to, ua)
+    [];
+req_cap(d_oa_in_oa, [OA1, OA2]) ->
+    %% process must have (d-ua, uato) capabilities and either (d-uaua,
+    %% uato) or (d-uaua-fr, uafr), (d-uaua-to, uato)
+    [];
+req_cap(d_oa_to_oa, [OA1, OA2]) ->
+    %% process must have either (d-uaua, uato) or (d-uaua-fr, uafr),
+    %% (d-uaua-to, uato)
+    [];
+req_cap(d_oa_in_pc, [OA, PC]) ->
+    %% process must have (univ, framework)
+    [];
+req_cap(d_oa_to_pc, [OA, PC]) ->
+    %% process must have (univ, framework)
+    [];
+req_cap(d_pc, [PC]) ->
+    %% process must have (univ, framework)
+    [];
+req_cap(d_assoc, [UA, AT]) ->
+    %% process must hold (d-assoc-fr, ua), (d-assoc-to, at)
+    [];
+req_cap(d_conj_uprohib, [U, ATIs, ATEs]) ->
+    %% process must hold (d-prohib-fr, u), (d-prohib-to, at)
+    %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
+    %% ates
+    [];
+req_cap(d_conj_pprohib, [P, ATIs, ATEs]) ->
+    %% process must hold (d-prohib-fr, Process_User(p)), (d-prohib-to,
+    %% at) capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for
+    %% ∀ate ∈ ates
+    [];
+req_cap(d_conj_uaprohib, [UA, ATIs, ATEs]) ->
+    %% process must hold (d-prohib-fr, ua), (d-prohib-to, at)
+    %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
+    %% ates
+    [];
+req_cap(d_disj_uprohib, [U, ATIs, ATEs]) ->
+    %% process must hold (d-prohib-fr, u), (d-prohib-to, at)
+    %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
+    %% ates
+    [];
+req_cap(d_disj_pprohib, [P, ATIs, ATEs]) ->
+    %% process must hold (d-prohib-fr, Process_User(p)), (d-prohib-to,
+    %% at) capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for
+    %% ∀ate ∈ ates
+    [];
+req_cap(d_disj_uaprohib, [UA, ATIs, ATEs]) ->
+    %% process must hold (d-prohib-fr, ua), (d-prohib-to, at)
+    %% capabilities for ∀ati ∈ atis, and (d-prohib-to, ate) for ∀ate ∈
+    %% ates
+    [];
+req_cap(d_oblig, Argseq) ->
+    [].
+
+
+
 
 %% PRIVILEGE ⊆ U × AR × (PE\PC) 
 %% TODO: can a privilege u-ar-u exist?  (PE\PC) seems to imply it does.

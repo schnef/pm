@@ -37,13 +37,12 @@ initial_state() ->
 
 %% @doc List of possible commands to run against the system
 command(#state{pcs = []}) ->
-    {call, ?MODULE, c_pc, [pc()]};
+    {call, pm_pap, c_pc, [pc()]};
 command(#state{pcs = PCs}) ->
     N = rand:uniform(length(PCs)),
     PC = lists:nth(N, PCs),
-    %% io:format("~p PCs~n", [length(PCs)]),
-    oneof([{call, ?MODULE, c_pc, [pc()]},
-	   {call, ?MODULE, d_pc, [PC]}]);
+    oneof([{call, pm_pap, c_pc, [pc()]},
+	   {call, pm_pap, d_pc, [PC]}]);
 command(_State) ->
     oneof([
         {call, actual_system, some_call, [term(), term()]}
@@ -63,16 +62,17 @@ precondition(_State, {call, _Mod, _Fun, _Args}) ->
 %% @doc Given the state `State' *prior* to the call
 %% `{call, Mod, Fun, Args}', determine whether the result
 %% `Res' (coming from the actual system) makes sense.
-postcondition(_State, {call, _Mod, c_pc, [_PC]}, PC) -> 
+postcondition(_State, {call, _Mod, c_pc, [_PC]}, {ok, PC}) -> 
     [PC#pc.id] =:= pm_pap:elements(PC);
-postcondition(_State, {call, _Mod, d_pc, [PC]}, Res) ->
-    Res =:= ok andalso [] =:= pm_pap:elements(PC);
+postcondition(_State, {call, _Mod, d_pc, [PC]}, ok) ->
+    [] =:= pm_pap:elements(PC);
 postcondition(_State, {call, _Mod, _Fun, _Args}, _Res) ->
-    true.
+    false.
 
 %% @doc Assuming the postcondition for a call was true, update the model
 %% accordingly for the test to proceed.
-next_state(#state{pcs = PCs} = State, PC, {call, _Mod, c_pc, [_PC]}) ->
+next_state(#state{pcs = PCs} = State, Res, {call, _Mod, c_pc, [_PC]}) ->
+    PC = get_ref(Res),
     State#state{pcs = [PC | PCs]};
 next_state(#state{pcs = PCs} = State, _Res, {call, _Mod, d_pc, [PC]}) ->
     State#state{pcs = lists:delete(PC, PCs)};
@@ -80,14 +80,42 @@ next_state(State, _Res, {call, _Mod, _Fun, _Args}) ->
     NewState = State,
     NewState.
 
-c_pc(PC1) ->
-    {ok, PC2} = pm_pap:c_pc(PC1),
-    %% io:format("c_pc ~p~n", [PC2]),
-    PC2.
+%% See https://erlang.org/pipermail/erlang-questions/2020-May/099499.html
+%%
+%% 1. Get a reference term in next_state:
+%% Note the Res will either be {var, N} (symbolic run) or {ok,
+%% RealRef} (run with SUT). The magic lies in the following
+%% function. As long as you always take Res as opaque, it doesn't
+%% really matter which of the two variants are used in the State.
+get_ref({var, _} = Res) ->
+    {call, ?MODULE, get_ref, [Res]};
+get_ref({ok, RealRef}) ->
+    RealRef.
+%% It is important that this reference is only created in one place,
+%% since in the symbolic run the Ref term will also include N which is
+%% different for each command in the row. So a 'create' followed by
+%% some 'lookup' for the same object would each provide a different
+%% Ref in the symbolic run but (probably) the same Ref in the run with
+%% the SUT.
+%%
+%% 2. When generating subsequent commands, the keys in 'objs' can be
+%% used as references for existing objects. Here the will always have
+%% the form {call, ?MODULE, get_ref, [{var, N}]} having the advantage
+%% of being quite comprehensible when inspecting the generated command
+%% lists.
+%%
+%% 3. In subsequent preconditions or next_state invocations you'll
+%% have to search 'objs' based on the values (Arg) in State if you
+%% need the reference unless its already part of the generated command
+%% arguments.  Note that the reference will have the form {call, ...}
+%% in the symbolic run and the evaluated RealRef in the SUT run. This
+%% isn't an issue as long as handle this as an opaque reference only.
+%%
+%% 4. In the postconditions, you will always have the evaluated
+%% RealRef as objs key, so you can compare it with anything you get
+%% from the SUT when executing another command.
 
-d_pc(PC) ->
-    %% io:format("d_pc ~p~n", [PC]),
-    pm_pap:d_pc(PC).
+
 
 %%%===================================================================
 %%% Generators
@@ -104,6 +132,8 @@ o() ->
     ?LET(Name, string(), #o{value = Name}).
 oa() ->
     ?LET(Name, string(), #oa{value = Name}).
+
+
 
 %%%===================================================================
 %%% Internal functions

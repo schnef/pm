@@ -198,7 +198,9 @@ c_assoc(UA, ARs, #o{id = Z}) ->
 c_assoc(UA, ARs, #oa{id = Z}) ->
     c_assoc(UA, ARs, Z);
 c_assoc(#ua{id = X}, ARs, Z) when ARs =/= [] ->
-    AR_ids = [(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs],
+    %% TODO: What made me use a function to get the Ids????
+    %% AR_ids = [(fun(#ar{id = AR_id}) -> AR_id end)(AR) || AR <- ARs],
+    AR_ids = [AR#ar.id || AR <- ARs],
     case gen_server:call(?SERVER, {c_assoc, X, AR_ids, Z}) of
 	{ok, ARset} ->
 	    {ok, #association{ua = X, arset = ARset, at = Z}};
