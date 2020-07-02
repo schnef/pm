@@ -272,7 +272,8 @@ calc_priv(G, U, AT_target, Restricted) ->
     F2 = fun(S1, S2) ->
 		 sets:union(S1, S2)
 	 end,
-    lists:foldl(F2, sets:new(), ARsets).
+    %% lists:foldl(F2, sets:new(), ARsets).
+    lists:foldl(fun sets:union/2, sets:new(), ARsets).
 
 -spec access_ANSI(G, U, AR, AT) -> boolean() when
       G :: digraph:graph(),
