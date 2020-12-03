@@ -753,7 +753,7 @@ elements_intersection(G, [AT | Rest]) ->
 
 %% @private 
 %% @doc Check on equality of two sets. Two versions: one first
-%% compares the sizes and if these match it checks ia one set is the
+%% compares the sizes and if these match it checks if one set is the
 %% subset of the other, which must be true if sets are equal, The
 %% second one checks set A to be a subset of B and vice versa. The
 %% first version probably is faster since the sizes can be fetched
@@ -829,7 +829,8 @@ sort(L) ->
     L1 = lists:keysort(1, L),
     lists:map(F, L1).
 
-%% The following function(s) create simple PMs.
+%% The following function(s) create simple PMs. A map is returned with
+%% the created values which can be used by the actual tests later.
 pm1() ->
     {ok, PC1} = pm_pap:c_pc(#pc{value="pc1"}),
     {ok, PC2} = pm_pap:c_pc(#pc{value="pc2"}),
@@ -902,6 +903,11 @@ pm3() ->
       ua1 => UA1, ua2 => UA2, ua3 => UA3, u1 => U1, u2 => U2,
       oa22 => OA22, oa21 => OA21, oa20 => OA20, o1 => O1, o2 => O2
      }.
+
+%% Tests take the PM graph and a map with the previously created
+%% elements. To make it possible to compare the outcome of a function
+%% call to an expected value, sorting is used in many cases to. The
+%% sort/1 function is a recursive lists sort function.
 
 tst_find_border_at_priv(G, M) ->
     #{pc1 := #pc{id = PC1}, pc3 := #pc{id = PC3}, 

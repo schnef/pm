@@ -60,3 +60,5 @@ tst_policy_machine_core_getting_started() ->
      ?_assertMatch(grant, pm_pdp:privilege(U2, [AR_r], O1)),
      ?_assertMatch(deny, pm_pdp:privilege(U2, [AR_w], O1))].
 ```
+
+See [TestCases](https://github.com/PM-Master/policy-machine-core/blob/master/src/test/java/gov/nist/csd/pm/pdp/audit/TestCases.java)
